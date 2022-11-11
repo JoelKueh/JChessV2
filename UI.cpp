@@ -2,13 +2,127 @@
 
 static inline bool is_even(int x) { return x % 2; }
 
-Graphics::Graphics()
+UI::UI()
 {
 	setlocale(LC_CTYPE, "");
 	initscr();
 }
 
-void Graphics::draw_chess_board(int start_x, int start_y)
+
+void UI::cleanup()
+{
+	endwin();
+}
+
+void UI::wait_key_press()
+{
+	getch();
+}
+
+UnicodeUI::UnicodeUI() = default;
+
+void UnicodeUI::draw_chess_board(int start_x, int start_y)
+{
+	draw_top_line();
+	for(int row = 1; row < 16; row++)
+	{
+		if(row % 2 == 0)
+		{
+			draw_other_line();
+		}
+		else
+		{
+			draw_piece_line();
+		}
+	}
+	draw_bottom_line();
+}
+
+void UnicodeUI::draw_top_line()
+{
+	wchar_t output_str[34] = { 0 };
+	output_str[0] = d_r;
+	for(int col = 1; col < 32; col++)
+	{
+		if(col % 4 == 0)
+		{
+			output_str[col] = d_lr;
+		}
+		else
+		{
+			output_str[col] = hz_ln;
+		}
+	}
+	output_str[32] = d_l;
+	output_str[33]='\0';
+	printw("%ls\n",output_str);
+}
+
+void UnicodeUI::draw_piece_line()
+{
+	wchar_t output_str[34] = { 0 };
+	for(int col = 0; col < 33; col++)
+	{
+		if(col % 4 == 0)
+		{
+			output_str[col] = vr_ln;
+		}
+		else if(col % 4 == 2)
+		{
+			output_str[col] = 'P';
+		}
+		else
+		{
+			output_str[col] = ' ';
+		}
+	}
+	output_str[33]='\0';
+	printw("%ls\n",output_str);
+}
+
+void UnicodeUI::draw_other_line()
+{
+	wchar_t output_str[34] = { 0 };
+	output_str[0] = du_r;
+	for(int col = 1; col < 32; col++)
+	{
+		if(col % 4 == 0)
+		{
+			output_str[col] = du_lr;
+		}
+		else
+		{
+			output_str[col] = hz_ln;
+		}
+	}
+	output_str[32] = du_l;
+	output_str[33]='\0';
+	printw("%ls\n",output_str);
+}
+
+void UnicodeUI::draw_bottom_line()
+{
+	wchar_t output_str[34] = { 0 };
+	output_str[0] = u_r;
+	for(int col = 1; col < 32; col++)
+	{
+		if(col % 4 == 0)
+		{
+			output_str[col] = u_lr;
+		}
+		else
+		{
+			output_str[col] = hz_ln;
+		}
+	}
+	output_str[32] = u_l;
+	output_str[33]='\0';
+	printw("%ls\n",output_str);
+}
+
+NoUnicodeUI::NoUnicodeUI() = default;
+
+void NoUnicodeUI::draw_chess_board(int start_x, int start_y)
 {
 	for(int row = 0; row < 17; row++)
 	{
@@ -23,9 +137,9 @@ void Graphics::draw_chess_board(int start_x, int start_y)
 	}
 }
 
-void Graphics::draw_other_line()
+void NoUnicodeUI::draw_other_line()
 {
-	wchar_t output_str[34] = { 0 };
+	char output_str[34] = { 0 };
 	for(int col = 0; col < 33; col++)
 	{
 		if(col % 4 == 0)
@@ -34,15 +148,15 @@ void Graphics::draw_other_line()
 		}
 		else
 		{
-			output_str[col] = ;
+			output_str[col] = '-';
 		}
 
 	}
 	output_str[33]='\0';
-	printw("%ls\n",output_str);
+	printw("%s\n",output_str);
 }
 
-void Graphics::draw_piece_line()
+void NoUnicodeUI::draw_piece_line()
 {
 	char output_str[34] = "";
 	for(int col = 0; col < 33; col++)
@@ -62,14 +176,4 @@ void Graphics::draw_piece_line()
 	}
 	output_str[33]='\0';
 	printw("%s\n",output_str);
-}
-
-void Graphics::cleanup()
-{
-	endwin();
-}
-
-void Graphics::wait_key_press()
-{
-	getch();
 }
