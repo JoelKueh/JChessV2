@@ -2,37 +2,49 @@
 
 ChessBoard::ChessBoard() = default;
 
-char** ChessBoard::read_board()
+char** ChessBoard::board_to_strarr()
 {
-	char_row* output = new char_row[8];
+	char** output = new char* [8];
+	for (int row = 0; row < 8; row++)
+	{
+		char* arr = new char[8];
+
+		for (int col = 0; col < 8; col++)
+		{
+			arr[col] = 0;
+		}
+	}
 
 	for (int row = 0; row < 8; row++)
 	{
 		for (int col = 0; col < 8; col++)
 		{
 			std::bitset<4> piece;
-			for (int bit = 0; bit < 4; bit++)
+			for (int bit = 1; bit < 5; bit++)
 			{
-				piece[bit] = board_raw(row,col,bit + 1);
+				piece[bit] = board_raw(row,col,bit);
 			}
 
-			switch (piece)
+			switch (piece.to_ulong())
 			{
-				case none: output[row][col] = " "; break;
-				case pawn_c: output[row][col] = "p"; break;
-				case pawn: output[row][col] = "p"; break;
-				case knight: output[row][col] = "k"; break;
-				case bishop: output[row][col] = "b"; break;
-				case rook_c: output[row][col] = "r"; break;
-				case rook: output[row][col] = "r"; break;
-				case queen: output[row][col] = "q"; break;
-				case king: output[row][col] = "k"; break;
+				case 0: output[row][col] = ' '; break;
+				case 1: output[row][col] = 'p'; break;
+				case 2: output[row][col] = 'p'; break;
+				case 3: output[row][col] = 'k'; break;
+				case 4: output[row][col] = 'b'; break;
+				case 5: output[row][col] = 'r'; break;
+				case 6: output[row][col] = 'r'; break;
+				case 7: output[row][col] = 'q'; break;
+				case 8: output[row][col] = 'k'; break;
+				case 9: output[row][col] = 'k'; break;
 			}
 
-			if (board_raw(row,col))
+			if (board_raw(row,col,0) == 1)
 			{
 				toupper(output[row][col]);
 			}
 		}
 	}
+
+	return output;
 }

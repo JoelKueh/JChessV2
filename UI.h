@@ -23,7 +23,7 @@ class UI
 {
 public:
 	UI();
-	virtual void draw_chess_board(int start_x, int start_y) = 0;
+	virtual void draw_chess_board(int start_x, int start_y, char** board) = 0;
 	void cleanup();
 	void wait_key_press();
 };
@@ -32,11 +32,11 @@ class UnicodeUI : public UI
 {
 public:
 	UnicodeUI();
-	void draw_chess_board(int start_x, int start_y);
+	void draw_chess_board(int start_x, int start_y, char** board);
 
 private:
 	void draw_top_line();
-	void draw_piece_line();
+	void draw_piece_line(int row_num, char* row_arr);
 	void draw_other_line();
 	void draw_bottom_line();
 };
@@ -45,9 +45,9 @@ class NoUnicodeUI : public UI
 {
 public:
 	NoUnicodeUI();
-	void draw_chess_board(int start_x, int start_y);
+	void draw_chess_board(int start_x, int start_y, char** board);
 
 private:
-	void draw_piece_line();
+	void draw_piece_line(int row_num, char* row_arr);
 	void draw_other_line();
 };

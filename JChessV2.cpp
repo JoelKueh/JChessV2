@@ -1,5 +1,7 @@
-#include "UI.h"
 #include <cstring>
+
+#include "UI.h"
+#include "ChessBoard.h"
 
 UI* my_ui;
 
@@ -40,8 +42,6 @@ int main(int argc, char *argv[])
 
 	struct winsize w;
 	ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-
-	my_ui->draw_chess_board(0,0);
 
 	my_ui->wait_key_press();
 	my_ui->cleanup();

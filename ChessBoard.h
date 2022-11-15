@@ -3,6 +3,17 @@
 #include <bitset>
 #define board_raw(row,col,bit) board_raw[(row)*8*5+(col)*5+(bit)]
 
+#define NONE 0
+#define PAWN_C 1
+#define PAWN 2
+#define KNIGHT 3
+#define BISHOP 4
+#define ROOK_C 5
+#define ROOK 6
+#define QUEEN 7
+#define KING_C 8
+#define KING 9
+
 class ChessBoard
 {
 public:
@@ -17,11 +28,8 @@ public:
 	void write_str_to_col(char* col);
 	void write_char_to_square(char piece);
 
-	std::bitset row_to_bitset(int row);
-	std::bitset col_to_bitset(int col);
-	std::bitset piece_to_bitset(int row, int col);
-
 	typedef char (char_row)[8];
+
 private:
 	std::bitset<320> board_raw;
 

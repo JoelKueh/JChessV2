@@ -21,7 +21,7 @@ void UI::wait_key_press()
 
 UnicodeUI::UnicodeUI() = default;
 
-void UnicodeUI::draw_chess_board(int start_x, int start_y)
+void UnicodeUI::draw_chess_board(int start_x, int start_y, char** board)
 {
 	draw_top_line();
 	for(int row = 1; row < 16; row++)
@@ -32,7 +32,7 @@ void UnicodeUI::draw_chess_board(int start_x, int start_y)
 		}
 		else
 		{
-			draw_piece_line();
+			draw_piece_line(0, nullptr);
 		}
 	}
 	draw_bottom_line();
@@ -58,7 +58,7 @@ void UnicodeUI::draw_top_line()
 	printw("%ls\n",output_str);
 }
 
-void UnicodeUI::draw_piece_line()
+void UnicodeUI::draw_piece_line(int row_num, char* row_arr)
 {
 	wchar_t output_str[34] = { 0 };
 	for(int col = 0; col < 33; col++)
@@ -69,7 +69,7 @@ void UnicodeUI::draw_piece_line()
 		}
 		else if(col % 4 == 2)
 		{
-			output_str[col] = 'P';
+			output_str[col] = row_arr[row_num];
 		}
 		else
 		{
@@ -122,7 +122,7 @@ void UnicodeUI::draw_bottom_line()
 
 NoUnicodeUI::NoUnicodeUI() = default;
 
-void NoUnicodeUI::draw_chess_board(int start_x, int start_y)
+void NoUnicodeUI::draw_chess_board(int start_x, int start_y, char** board)
 {
 	for(int row = 0; row < 17; row++)
 	{
@@ -132,7 +132,7 @@ void NoUnicodeUI::draw_chess_board(int start_x, int start_y)
 		}
 		else
 		{
-			draw_piece_line();
+			draw_piece_line(0, nullptr);
 		}
 	}
 }
@@ -156,7 +156,7 @@ void NoUnicodeUI::draw_other_line()
 	printw("%s\n",output_str);
 }
 
-void NoUnicodeUI::draw_piece_line()
+void NoUnicodeUI::draw_piece_line(int row_num, char* row_arr)
 {
 	char output_str[34] = "";
 	for(int col = 0; col < 33; col++)
