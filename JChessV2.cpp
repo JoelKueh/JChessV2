@@ -1,9 +1,8 @@
 #include <cstring>
 
-#include "UI.h"
-#include "ChessBoard.h"
+#include "head/scenes/MainMenu.h"
 
-UI* my_ui;
+Scene *my_scene;
 
 struct options
 {
@@ -31,19 +30,13 @@ int main(int argc, char *argv[])
 {
 	parse_args(argc, argv);
 
-	if(my_options.uni)
-	{
-		my_ui = new(UnicodeUI);
-	}
-	else
-	{
-		my_ui = new(NoUnicodeUI);
-	}
+	setlocale(LC_CTYPE, "");
+	initscr();
 
 	struct winsize w;
 	ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
 
-	my_ui->wait_key_press();
-	my_ui->cleanup();
+	
+
 	return 0;
 }
