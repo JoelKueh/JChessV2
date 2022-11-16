@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 	struct winsize w;
 	ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
 
-	
+	my_scene = new(MainMenu());
 
 	return 0;
 }
