@@ -1,6 +1,10 @@
 #include <cstring>
 
-#include "head/scenes/MainMenu.h"
+#include "scenes/StartMenu/StartMenu.h"
+#include <ncurses.h>
+#include <iostream>
+#include <sys/ioctl.h>
+#include <unistd.h>
 
 Scene *my_scene;
 
@@ -10,6 +14,8 @@ struct options
 	bool gui = false;
 };
 options my_options;
+
+struct winsize terminal;
 
 void parse_args(int argc, char **argv)
 {
@@ -26,17 +32,56 @@ void parse_args(int argc, char **argv)
 	}
 }
 
+void init_terminal()
+{
+	setlocale(LC_CTYPE, "");
+	initscr();
+	noecho();
+	timeout(700);
+	cbreak();
+	keypad(stdscr, TRUE);
+	curs_set(0);
+
+	ioctl(STDOUT_FILENO, TIOCGWINSZ, &terminal);
+}
+
+void cleanup()
+{
+	endwin();
+}
+
+void remake_scene()
+{
+	Scene* new_scene = my_scene->create_new();
+	delete my_scene;
+	my_scene = new_scene;
+}
+
 int main(int argc, char *argv[])
 {
 	parse_args(argc, argv);
+	init_terminal();
 
-	setlocale(LC_CTYPE, "");
-	initscr();
+	my_scene = new StartMenu(terminal.ws_col, terminal.ws_row);
+	// DEBUG
+	// printw("Width: %d\nHeight: %d",terminal.ws_col, terminal.ws_row);
 
-	struct winsize w;
-	ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+	bool quit = false;
+	while (!quit)
+	{
+		int update_state = 0;
+		update_state = my_scene->update();
 
-	my_scene = new(MainMenu());
+		switch (update_state)
+		{
+			case Scene::update_states::M_TERMINATE: quit = true; break;
+			case Scene::update_states::M_RECREATE_ME: remake_scene(); break;
+			case Scene::update_states::M_OK: break;
+			default: break;
+		}
+	}
+	wgetch(stdscr);
+	cleanup();
 
 	return 0;
 }
