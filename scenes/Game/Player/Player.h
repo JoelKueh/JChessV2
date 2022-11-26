@@ -19,6 +19,8 @@ public:
     short end_y = 0;
   }; move last_move;
 
+  int time;
+
   Player();
   virtual int get_status() = 0;
   virtual move* get_move() = 0;

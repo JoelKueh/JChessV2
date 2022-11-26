@@ -16,6 +16,8 @@ struct options
 options my_options;
 
 struct winsize terminal;
+int scr_x;
+int scr_y;
 
 void parse_args(int argc, char **argv)
 {
@@ -37,12 +39,14 @@ void init_terminal()
 	setlocale(LC_CTYPE, "");
 	initscr();
 	noecho();
-	timeout(700);
+	timeout(500);
 	cbreak();
 	keypad(stdscr, TRUE);
 	curs_set(0);
 
 	ioctl(STDOUT_FILENO, TIOCGWINSZ, &terminal);
+	scr_x = terminal.ws_col;
+	scr_y = terminal.ws_row;
 }
 
 void cleanup()
@@ -52,6 +56,7 @@ void cleanup()
 
 void remake_scene()
 {
+	addstr("Remade");
 	Scene* new_scene = my_scene->create_new();
 	delete my_scene;
 	my_scene = new_scene;
@@ -62,9 +67,7 @@ int main(int argc, char *argv[])
 	parse_args(argc, argv);
 	init_terminal();
 
-	my_scene = new StartMenu(terminal.ws_col, terminal.ws_row);
-	// DEBUG
-	// printw("Width: %d\nHeight: %d",terminal.ws_col, terminal.ws_row);
+	my_scene = new StartMenu();
 
 	bool quit = false;
 	while (!quit)
@@ -80,7 +83,6 @@ int main(int argc, char *argv[])
 			default: break;
 		}
 	}
-	wgetch(stdscr);
 	cleanup();
 
 	return 0;

@@ -1,6 +1,6 @@
 #include "StartMenu.h"
 
-StartMenu::StartMenu(int scr_x, int scr_y)
+StartMenu::StartMenu()
 {
 	my_menu.width = 50;
 	my_menu.height = 13;	
@@ -19,10 +19,10 @@ int StartMenu::update()
 	switch (input)
 	{
 		case KEY_UP:
-			switch_selected_row(1);
+			switch_selected_row(-1);
 			break;
 		case KEY_DOWN:
-			switch_selected_row(-1);
+			switch_selected_row(1);
 			break;
 		case KEY_LEFT:
 			switch_selected_choice(-1);
@@ -33,8 +33,9 @@ int StartMenu::update()
 		case ctrl('c'):
 			return update_states::M_TERMINATE;
 			break;
-		case KEY_ENTER:
+		case '\n':
 			return handle_enter();
+			break;
 		default:
 			break;
 	}
@@ -72,13 +73,13 @@ void StartMenu::init_menu()
 	}
 
 	mvwaddstr(menu_win, 10, my_menu.width / 2 - 4, "[Start]");
-	wtimeout(menu_win, 700);
+	wtimeout(menu_win, 500);
 	keypad(menu_win, TRUE);
 }
 
 void StartMenu::update_selected_row()
 {
-	if (selected_row = menu_choices.size())
+	if (selected_row == menu_choices.size())
 	{
 		if (highlight)
 		{
@@ -86,6 +87,8 @@ void StartMenu::update_selected_row()
 		}
 		mvwaddstr(menu_win, 10, my_menu.width / 2 - 4, "[Start]");
 		wattroff(menu_win, A_STANDOUT);
+		highlight = !highlight;
+		return;
 	}
 
 	int num_choices = menu_choices[selected_row].size();
@@ -107,16 +110,25 @@ void StartMenu::update_selected_row()
 
 void StartMenu::switch_selected_row(int row_change)
 {
-	highlight = true;
+	if(selected_row == menu_choices.size())
+	{
+		highlight = false;
+	}
+	else
+	{
+		highlight = true;
+	}
+
 	update_selected_row();
+	highlight = true;
 	selected_row += row_change;
 	if (selected_row < 0)
 	{
 		selected_row = 0;
 	}
-	else if(selected_row > menu_choices.size() - 1)
+	else if(selected_row > menu_choices.size())
 	{
-		selected_row = menu_choices.size() - 1;
+		selected_row = menu_choices.size();
 	}
 }
 
@@ -146,5 +158,11 @@ int StartMenu::handle_enter()
 
 Scene* StartMenu::create_new()
 {
-	return this;
+	std::string *time_str = &menu_choices[2][selected_choices[2]];
+	Scene *new_scene = new Game(selected_choices[0], selected_choices[1], time_str);
+}
+
+StartMenu::~StartMenu()
+{
+	werase(menu_win);
 }

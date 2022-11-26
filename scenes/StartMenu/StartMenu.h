@@ -1,17 +1,21 @@
 #pragma once
 
-#include "Game.h"
+#include "../Game/Game.h"
 
 #include "../Scene.h"
 #include <string>
 #include <vector>
 
+extern int scr_x;
+extern int scr_y;
+
 class StartMenu : public Scene
 {
 public:
-	StartMenu(int width, int height);
+	StartMenu();
 	int update();
 	Scene* create_new();
+	~StartMenu();
 
 private:
 	void init_menu();
