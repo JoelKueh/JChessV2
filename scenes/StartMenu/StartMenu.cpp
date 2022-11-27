@@ -1,5 +1,9 @@
 #include "StartMenu.h"
 
+// DEBUG
+#include <fstream>
+extern std::ofstream debug_out;
+
 StartMenu::StartMenu()
 {
 	my_menu.width = 50;
@@ -8,6 +12,10 @@ StartMenu::StartMenu()
 	my_menu.start_x = scr_x / 2 - my_menu.width / 2;
 	my_menu.start_y = scr_y / 2 - my_menu.height / 2;
 
+}
+
+void StartMenu::init()
+{
 	init_menu();
 }
 
@@ -160,9 +168,19 @@ Scene* StartMenu::create_new()
 {
 	std::string *time_str = &menu_choices[2][selected_choices[2]];
 	Scene *new_scene = new Game(selected_choices[0], selected_choices[1], time_str);
+
+	// DEBUG
+	debug_out << "New Object Created" << std::endl;
+
+	return new_scene;
 }
 
 StartMenu::~StartMenu()
 {
+	// DEBUG
+	debug_out << "Destructing Derived Scene" << std::endl;
+
 	werase(menu_win);
+	wrefresh(menu_win);
+	delwin(menu_win);
 }

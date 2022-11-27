@@ -6,10 +6,8 @@
 
 ChessBoard::ChessBoard()
 {
-	for (int i = 0; i < board_raw.size(); i++)
-	{
-		board_raw[i] = 0;
-	}
+	char init_board[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR\0";
+	fen_to_board(init_board);
 };
 
 char **ChessBoard::board_to_strarr()
@@ -33,7 +31,7 @@ char **ChessBoard::board_to_strarr()
 			std::bitset<4> piece;
 			for (int bit = 1; bit < 5; bit++)
 			{
-				piece[bit] = board_raw(row,col,bit);
+				piece[bit] = board_raw_read(row,col,bit);
 			}
 
 			switch (piece.to_ulong())
@@ -51,12 +49,79 @@ char **ChessBoard::board_to_strarr()
 				default: output[row][col] = 0; break;
 			}
 
-			if (board_raw(row,col,0) == 1)
+			if (board_raw_read(row,col,0) == 1)
 			{
-				toupper(output[row][col]);
+				output[row][col] = toupper(output[row][col]);
 			}
 		}
 	}
 
 	return output;
+}
+
+// TODO: IMPLEMENT SUPPORT FOR TURN, CASLTES, ENPASSANT, AND 50 MOVE RULE
+bool ChessBoard::fen_to_board(char *fen_str)
+{
+	int row = 0;
+	int col = 7;
+
+	for (int i = 0; i <= 87; i++)
+	{
+		char this_char = fen_str[i];
+		if (isdigit(this_char))
+		{
+			// As the Unicode values for ascii characters are right next to eachother, the Unicode for '0' can
+			// be subtracted from the number to get the value in integer form.
+			col -= this_char - '0';
+		}
+		else if (this_char == '/')
+		{
+			col = 7;
+			row++;
+		}
+		else if (this_char == '\0')
+		{
+			return true;
+		}
+		else
+		{
+			bool is_white = false;
+			if (isupper(this_char))
+			{
+				is_white = true;
+			}
+			this_char = tolower(this_char);
+
+			switch (this_char)
+			{
+				case 'k': write_bitset_to_square(&king,   row, col, is_white); break;
+				case 'q': write_bitset_to_square(&queen,  row, col, is_white); break;
+				case 'r': write_bitset_to_square(&rook,   row, col, is_white); break;
+				case 'b': write_bitset_to_square(&bishop, row, col, is_white); break;
+				case 'n': write_bitset_to_square(&knight, row, col, is_white); break;
+				case 'p': write_bitset_to_square(&pawn,   row, col, is_white); break;
+			}
+			col--;
+		}
+	}
+	return false;
+}
+
+void ChessBoard::write_bitset_to_square(const std::bitset<4> *piece, int row, int col, bool is_white)
+{
+	for (int i = 1; i < 5; i++)
+	{
+		board_raw_w(row, col, i, (*piece)[i]);
+	}
+	board_raw_w(row, col, 0, is_white);
+}
+
+bool ChessBoard::board_raw_r(int row, int col, int bit)
+{
+	return board_raw[row*8*5+col*5+bit];
+}
+
+void ChessBoard::board_raw_w(int row, int col, int bit, bool val)
+{
+	board_raw.set(row*8*5+col*5+bit,val);
 }

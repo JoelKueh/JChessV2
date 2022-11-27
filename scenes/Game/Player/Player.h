@@ -3,10 +3,6 @@
 #include "Player.h"
 #include <bitset>
 
-#define P_OK 0
-#define P_DISCONNECTED 1
-#define P_TERMINATED 2
-
 class Player
 {
 public:
@@ -18,6 +14,13 @@ public:
     short end_x = 0;
     short end_y = 0;
   }; move last_move;
+
+  enum status
+  {
+    P_OK = 0,
+    P_DISCONNECTED = 1,
+    P_TERMINATED = 2,
+  };
 
   int time;
 

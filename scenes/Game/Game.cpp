@@ -1,7 +1,8 @@
 #include "Game.h"
 
 // DEBUG
-#include <iostream>
+#include <fstream>
+extern std::ofstream debug_out;
 
 Game::Game(int white, int black, std::string *time_str)
 {
@@ -10,26 +11,42 @@ Game::Game(int white, int black, std::string *time_str)
   parse_time_str(time_str);
 
   board = new ChessBoard();
-
-  init_scene();
 }
 
-void Game::init_scene()
+int Game::update()
 {
-  erase();
-  init_board_win();
+	refresh();
+	return update_states::M_OK;
+}
+
+void Game::update_pieces(char **board)
+{
+	for (int row = 0; row < 8; row++)
+	{
+		for (int col = 0; col < 8; col++)
+		{
+			mvwaddch(board_win, 2 * (row + 1) - 1, 4 * (col + 1) - 2, board[row][col]);
+		}
+	}
+}
+
+void Game::init()
+{ 
+	init_board_win();
   init_timer_win();
   init_input_win();
+	refresh();
 }
 
 void Game::init_board_win()
 {
-  board_win = newwin(16, 34, 0, 0);
-	box(board_win, 0, 0);
-  draw_chess_board(board->board_to_strarr());
+  board_win = newwin(17, 33, 1, 2);
+  draw_chess_board();
+	update_pieces(board->board_to_strarr());
+	wrefresh(board_win);
 }
 
-void Game::draw_chess_board(char **board_str)
+void Game::draw_chess_board()
 {
 	draw_top_line();
 	for(int row = 1; row < 16; row++)
@@ -40,7 +57,7 @@ void Game::draw_chess_board(char **board_str)
 		}
 		else
 		{
-			draw_piece_line(0, board_str[(row - 1) / 2]);
+			draw_piece_line();
 		}
 	}
 	draw_bottom_line();
@@ -63,10 +80,10 @@ void Game::draw_top_line()
 	}
 	output_str[32] = d_l;
 	output_str[33]='\0';
-	wprintw(board_win, "%ls\n",output_str);
+	wprintw(board_win, "%ls",output_str);
 }
 
-void Game::draw_piece_line(int row_num, char* row_arr)
+void Game::draw_piece_line()
 {
 	wchar_t output_str[34] = { 0 };
 	for(int col = 0; col < 33; col++)
@@ -75,17 +92,13 @@ void Game::draw_piece_line(int row_num, char* row_arr)
 		{
 			output_str[col] = vr_ln;
 		}
-		else if(col % 4 == 2)
-		{
-			output_str[col] = row_arr[row_num];
-		}
 		else
 		{
 			output_str[col] = ' ';
 		}
 	}
 	output_str[33]='\0';
-	wprintw(board_win, "%ls\n",output_str);
+	wprintw(board_win, "%ls",output_str);
 }
 
 void Game::draw_other_line()
@@ -105,7 +118,7 @@ void Game::draw_other_line()
 	}
 	output_str[32] = du_l;
 	output_str[33]='\0';
-	wprintw(board_win, "%ls\n",output_str);
+	wprintw(board_win, "%ls",output_str);
 }
 
 void Game::draw_bottom_line()
@@ -125,20 +138,59 @@ void Game::draw_bottom_line()
 	}
 	output_str[32] = u_l;
 	output_str[33]='\0';
-	wprintw(board_win, "%ls\n",output_str);
+	wprintw(board_win, "%ls",output_str);
 }
 
 void Game::init_timer_win()
 {
+  timer_win = newwin(5, 9, 7, 39);
 
+	wchar_t output_str[10] = { 0 };
+	output_str[9] = '\0';
+	output_str[0] = d_r;
+	for(int col = 1; col < 8; col++)
+	{
+		output_str[col] = hz_ln;
+	}
+	output_str[8] = d_l;
+	wprintw(timer_win,"%ls",output_str);
+	
+	for(int col = 0; col < 8; col++)
+	{
+		output_str[col] = ' ';
+	}
+	output_str[0] = vr_ln;
+	output_str[8] = vr_ln;
+	wprintw(timer_win, "%ls", output_str);
+
+	output_str[0] = du_r;
+	for(int col = 1; col < 8; col++)
+	{
+		output_str[col] = hz_ln;
+	}
+	output_str[8] = du_l;
+	wprintw(timer_win,"%ls",output_str);
+
+	for(int col = 0; col < 8; col++)
+	{
+		output_str[col] = ' ';
+	}
+	output_str[0] = vr_ln;
+	output_str[8] = vr_ln;
+	wprintw(timer_win, "%ls", output_str);
+
+	output_str[0] = u_r;
+	for(int col = 1; col < 8; col++)
+	{
+		output_str[col] = hz_ln;
+	}
+	output_str[8] = u_l;
+	wprintw(timer_win,"%ls",output_str);
+
+	wrefresh(timer_win);
 }
 
 void Game::init_input_win()
-{
-
-}
-
-int Game::update()
 {
 
 }
@@ -180,4 +232,10 @@ void Game::parse_time_str(std::string *time_str)
 Scene* Game::create_new()
 {
 	Scene *new_scene = new StartMenu();
+	return new_scene;
+}
+
+Game::~Game()
+{
+	debug_out << "Game Destructed" << std::endl;
 }

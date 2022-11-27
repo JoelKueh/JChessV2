@@ -6,6 +6,10 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
+// DEBUG
+#include <fstream>
+std::ofstream debug_out;
+
 Scene *my_scene;
 
 struct options
@@ -56,18 +60,22 @@ void cleanup()
 
 void remake_scene()
 {
-	addstr("Remade");
 	Scene* new_scene = my_scene->create_new();
 	delete my_scene;
 	my_scene = new_scene;
+	my_scene->init();
 }
 
 int main(int argc, char *argv[])
 {
+	// DEBUG
+	debug_out.open("out/output.txt");
+
 	parse_args(argc, argv);
 	init_terminal();
 
 	my_scene = new StartMenu();
+	my_scene->init();
 
 	bool quit = false;
 	while (!quit)

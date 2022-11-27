@@ -13,9 +13,10 @@ class StartMenu : public Scene
 {
 public:
 	StartMenu();
-	int update();
-	Scene* create_new();
-	~StartMenu();
+	virtual void init();
+	virtual int update();
+	virtual Scene* create_new();
+	virtual ~StartMenu();
 
 private:
 	void init_menu();

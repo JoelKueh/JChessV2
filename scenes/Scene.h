@@ -7,8 +7,10 @@ class Scene
 {
 public:
 	Scene();
+  virtual void init() = 0;
 	virtual int update() = 0;
 	virtual Scene* create_new() = 0;
+  virtual ~Scene();
 	
 	enum update_states
 	{

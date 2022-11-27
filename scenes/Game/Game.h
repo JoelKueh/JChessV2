@@ -23,8 +23,10 @@ public:
   };
 
   Game(int white, int black, std::string *time_str);
-  int update();
-  Scene *create_new();
+  virtual void init();
+  virtual int update();
+  virtual Scene *create_new();
+  virtual ~Game();
 
 private:
   Player *p_white;
@@ -38,10 +40,16 @@ private:
   void init_scene();
   void init_board_win();
   WINDOW *board_win;
+  WINDOW *timer_win;
+  WINDOW *input_win;
   
-  void draw_chess_board(char** board);
+  void update_pieces(char **board);
+  void update_piece_row(char *row);
+  void update_piece_col(char *col);
+  void update_piece_square(char square);
+  void draw_chess_board();
   void draw_top_line();
-	void draw_piece_line(int row_num, char* row_arr);
+	void draw_piece_line();
 	void draw_other_line();
 	void draw_bottom_line();
   
