@@ -1,30 +1,13 @@
 #pragma once
 
-#include "../Game/Game.h"
-
-#include "../Scene.h"
 #include <string>
 #include <vector>
+#include <StartUI.h>
+#include <ncurses.h>
 
-extern int scr_x;
-extern int scr_y;
-
-class StartMenu : public Scene
+class StartCLI : public StartUI
 {
-public:
-	StartMenu();
-	virtual void init();
-	virtual int update();
-	virtual Scene* create_new();
-	virtual ~StartMenu();
-
 private:
-	void init_menu();
-	void update_selected_row();
-	void switch_selected_row(int row_change);
-	void switch_selected_choice(int choice_change);
-	int handle_enter();
-
 	WINDOW *menu_win;
 	int selected_row = 0;
 	bool highlight = false;
@@ -57,4 +40,15 @@ private:
 		int start_y;
 	};
 	menu_settings my_menu;
+
+public:
+	StartCLI();
+	virtual void init_menu();
+	virtual void update_selected_row();
+	virtual void switch_selected_row(int row_change);
+	virtual void switch_selected_choice(int choice_change);
+	virtual int handle_enter();
+	virtual ~StartCLI();
+
+	int selected_choices[3] = {0, 0, 0};
 };

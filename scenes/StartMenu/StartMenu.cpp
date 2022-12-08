@@ -11,7 +11,6 @@ StartMenu::StartMenu()
 
 	my_menu.start_x = scr_x / 2 - my_menu.width / 2;
 	my_menu.start_y = scr_y / 2 - my_menu.height / 2;
-
 }
 
 void StartMenu::init()

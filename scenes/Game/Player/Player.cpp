@@ -1,3 +1,6 @@
 #include "Player.h"
 
-Player::Player() = default;
+Player::Player()
+{
+  move_buffer = new Move();
+}

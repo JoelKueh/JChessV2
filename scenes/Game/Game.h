@@ -2,6 +2,8 @@
 
 #include <ncurses.h>
 #include <string>
+#include <chrono>
+#include <thread>
 #include "../StartMenu/StartMenu.h"
 #include "../Scene.h"
 #include "Player/Player.h"
@@ -32,16 +34,19 @@ private:
   Player *p_white;
   Player *p_black;
   ChessBoard *board;
-  int increment;
+  short increment;
+  short white_time;
+  short black_time;
 
   Player *create_player(int type);
   void parse_time_str(std::string *time_str);
 
   void init_scene();
-  void init_board_win();
   WINDOW *board_win;
   WINDOW *timer_win;
   WINDOW *input_win;
+  void init_board_win();
+  void init_coords();
   
   void update_pieces(char **board);
   void update_piece_row(char *row);

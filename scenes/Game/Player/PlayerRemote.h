@@ -7,7 +7,8 @@ private:
 
 public:
   PlayerRemote();
-  int get_status();
-  move* get_move();
-  void send_board();
+  virtual int get_status();
+  virtual Move* get_move();
+  virtual void send_board();
+  virtual ~PlayerRemote();
 };

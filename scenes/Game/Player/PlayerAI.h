@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Player.h"
-#include <bitset>
 
 class PlayerAI : public Player
 {
@@ -9,7 +8,8 @@ private:
 
 public:
   PlayerAI();
-  int get_status();
-  move* get_move();
-  void send_board();
+  virtual int get_status();
+  virtual Move *get_move();
+  virtual void send_board();
+  virtual ~PlayerAI();
 };
