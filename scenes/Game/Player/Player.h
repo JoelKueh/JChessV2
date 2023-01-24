@@ -5,7 +5,7 @@
 
 class Player
 {
-private:
+protected:
   Move *move_buffer;
 
 public:

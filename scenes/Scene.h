@@ -14,6 +14,7 @@ public:
 	
 	enum update_states
 	{
+    M_ERR = -1,
 		M_TERMINATE = 0,
 		M_OK = 1,
 		M_RECREATE_ME = 2,

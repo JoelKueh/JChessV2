@@ -9,10 +9,12 @@ int PlayerAI::get_status()
 
 Move *PlayerAI::get_move()
 {
-
+  return move_buffer;
 }
 
 void PlayerAI::send_board()
 {
   
 }
+
+PlayerAI::~PlayerAI() = default;

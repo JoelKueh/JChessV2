@@ -12,6 +12,7 @@
 #include "Player/PlayerAI.h"
 #include "Player/PlayerRemote.h"
 #include "Player/PlayerTheFish.h"
+#include "UI/GameCLI.h"
 
 class Game : public Scene
 {

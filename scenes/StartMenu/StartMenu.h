@@ -1,60 +1,26 @@
 #pragma once
 
 #include "../Game/Game.h"
-
+#include "../../Global.h"
+#include "StartCLI.h"
+#include "StartGUI.h"
+#include "StartUI.h"
 #include "../Scene.h"
+
 #include <string>
 #include <vector>
 
-extern int scr_x;
-extern int scr_y;
+extern options my_options;
 
 class StartMenu : public Scene
 {
+private:
+	StartUI *UI;
+
 public:
 	StartMenu();
 	virtual void init();
 	virtual int update();
 	virtual Scene* create_new();
 	virtual ~StartMenu();
-
-private:
-	void init_menu();
-	void update_selected_row();
-	void switch_selected_row(int row_change);
-	void switch_selected_choice(int choice_change);
-	int handle_enter();
-
-	WINDOW *menu_win;
-	int selected_row = 0;
-	bool highlight = false;
-
-	std::vector<std::string> player_choices {
-		"Local",
-		"Remote",
-		"AI"
-	};
-
-	std::vector<std::string> timer_choices {
-		"3 | 2",
-		"10 | 0",
-		"15 | 10",
-		"30 | 0"
-	};
-
-	std::vector<std::vector<std::string>> menu_choices {player_choices, player_choices, timer_choices};
-	std::string choice_labels[3] = {
-		"White:",
-		"Black:",
-		"Time:"
-	};
-
-	struct menu_settings
-	{
-		int width;
-		int height;
-		int start_x;
-		int start_y;
-	};
-	menu_settings my_menu;
 };

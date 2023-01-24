@@ -7,17 +7,14 @@ int PlayerRemote::get_status()
   return P_OK;
 }
 
-Player::move *PlayerRemote::get_move()
+Move *PlayerRemote::get_move()
 {
-  last_move.end_x = 0;
-  last_move.end_y = 0;
-  last_move.start_x = 0;
-  last_move.start_y = 0;
-
-  return &last_move;
+  return move_buffer;
 }
 
 void PlayerRemote::send_board()
 {
   
 }
+
+PlayerRemote::~PlayerRemote() = default;

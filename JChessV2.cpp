@@ -1,10 +1,12 @@
 #include <cstring>
-
-#include "scenes/StartMenu/StartMenu.h"
 #include <ncurses.h>
 #include <iostream>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <GLFW/glfw3.h>
+
+#include "scenes/StartMenu/StartMenu.h"
+#include "Global.h"
 
 // DEBUG
 #include <fstream>
@@ -12,16 +14,15 @@ std::ofstream debug_out;
 
 Scene *my_scene;
 
-struct options
-{
-	bool uni = true;
-	bool gui = false;
-};
 options my_options;
 
+// TERMINAL GLOBALS
 struct winsize terminal;
 int scr_x;
 int scr_y;
+
+// GUI GLOBALS
+GLFWwindow* window;
 
 void parse_args(int argc, char **argv)
 {
@@ -38,10 +39,11 @@ void parse_args(int argc, char **argv)
 	}
 }
 
-void init_terminal()
+int init_terminal()
 {
 	setlocale(LC_CTYPE, "");
 	initscr();
+	
 	noecho();
 	timeout(500);
 	cbreak();
@@ -51,11 +53,55 @@ void init_terminal()
 	ioctl(STDOUT_FILENO, TIOCGWINSZ, &terminal);
 	scr_x = terminal.ws_col;
 	scr_y = terminal.ws_row;
+
+	return 1;
 }
 
-void cleanup()
+int init_gui()
+{
+	if (!glfwInit())
+		return -1;
+
+	window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
+	
+	if (!window)
+	{
+		glfwTerminate();
+		return -1;
+	}
+
+	glfwMakeContextCurrent(window);
+
+	return 1;
+}
+
+int init()
+{
+	if(my_options.gui)
+		return init_gui();
+
+	return init_terminal();
+}
+
+int cleanup_terminal()
 {
 	endwin();
+	return 1;
+}
+
+int cleanup_gui()
+{
+	glfwDestroyWindow(window);
+	glfwTerminate();
+	return 1;
+}
+
+int cleanup()
+{
+	if(my_options.gui)
+		return cleanup_gui();
+		
+	return cleanup_terminal();
 }
 
 void remake_scene()
@@ -72,7 +118,8 @@ int main(int argc, char *argv[])
 	debug_out.open("out/output.txt");
 
 	parse_args(argc, argv);
-	init_terminal();
+
+	init();
 
 	my_scene = new StartMenu();
 	my_scene->init();
@@ -91,6 +138,7 @@ int main(int argc, char *argv[])
 			default: break;
 		}
 	}
+
 	cleanup();
 
 	return 0;
