@@ -6,16 +6,22 @@ extern std::ofstream debug_out;
 
 Game::Game(int white, int black, std::string *time_str)
 {
-  p_white = create_player(white);
-  p_black = create_player(black);
-  parse_time_str(time_str);
+  	p_white = create_player(white);
+  	p_black = create_player(black);
+  	parse_time_str(time_str);
 
-  board = new ChessBoard();
+  	board = new ChessBoard();
+
+	if (my_options.gui)
+		UI = new GameGUI();
+	else
+		UI = new GameCLI();
 }
 
 int Game::update()
 {
 	refresh();
+	UI->update_ui();
 	return update_states::M_OK;
 }
 
@@ -33,8 +39,8 @@ void Game::update_pieces(char **board)
 void Game::init()
 { 
 	init_board_win();
-  init_timer_win();
-  init_input_win();
+  	init_timer_win();
+  	init_input_win();
 	refresh();
 }
 
@@ -42,8 +48,8 @@ void Game::init_board_win()
 {
 	init_coords();
 	refresh();
-  board_win = newwin(17, 33, 2, 4);
-  draw_chess_board();
+  	board_win = newwin(17, 33, 2, 4);
+  	draw_chess_board();
 
 	char **board_str = board->board_to_strarr();
 	update_pieces(board_str);
@@ -216,36 +222,36 @@ void Game::init_input_win()
 
 Player *Game::create_player(int type)
 {
-  switch (type)
-  {
-    default:
-      return new PlayerLocal();
+  	switch (type)
+  	{
+	default:
+      	return new PlayerLocal();
     case player_type::remote:
-      return new PlayerRemote();
+      	return new PlayerRemote();
     case player_type::AI:
-      return new PlayerAI();
+      	return new PlayerAI();
     case player_type::TheFish:
-      return new PlayerTheFish();
-  }
+      	return new PlayerTheFish();
+  	}
 }
 
 void Game::parse_time_str(std::string *time_str)
 {
-  int bar_location;
-  for (int i = 0; i < time_str->size(); i++)
-  {
-    if ((*time_str)[i] == '|')
-    {
-      bar_location = i;
-      break;
-    }
-  }
+  	int bar_location;
+  	for (int i = 0; i < time_str->size(); i++)
+  	{
+    	if ((*time_str)[i] == '|')
+    	{
+      		bar_location = i;
+      		break;
+    	}
+  	}
 
-  int time = std::stoi(time_str->substr(0, bar_location - 1));
-  p_white->time = time;
-  p_black->time = time;
+  	int time = std::stoi(time_str->substr(0, bar_location - 1));
+  	p_white->time = time;
+  	p_black->time = time;
 
-  increment = std::stoi(time_str->substr(bar_location + 2, time_str->size() - bar_location - 2));
+  	increment = std::stoi(time_str->substr(bar_location + 2, time_str->size() - bar_location - 2));
 }
 
 Scene* Game::create_new()

@@ -13,6 +13,9 @@
 #include "Player/PlayerRemote.h"
 #include "Player/PlayerTheFish.h"
 #include "UI/GameCLI.h"
+#include "UI/GameGUI.h"
+
+extern options my_options;
 
 class Game : public Scene
 {
@@ -35,6 +38,7 @@ private:
   Player *p_white;
   Player *p_black;
   ChessBoard *board;
+  GameUI *UI;
   short increment;
   short white_time;
   short black_time;

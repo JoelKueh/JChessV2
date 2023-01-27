@@ -3,6 +3,9 @@
 #include <GLFW/glfw3.h>
 #include "StartUI.h"
 
+/**
+ * Not fully implemented yet, a windows is created, but nothing is ever drawn.
+*/
 class StartGUI : public StartUI
 {
 	virtual void update_selected_row();

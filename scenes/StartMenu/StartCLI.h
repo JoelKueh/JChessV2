@@ -10,6 +10,9 @@
 extern int scr_x;
 extern int scr_y;
 
+/**
+ * The CLI derivation for the Start Menu UI
+*/
 class StartCLI : public StartUI
 {
 private:

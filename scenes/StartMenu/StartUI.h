@@ -3,6 +3,11 @@
 #include <vector>
 #include <string>
 
+/**
+ * Base class for the user interface for the StartMenu
+ * Contains vectors to store the choices that the player can make as
+ * well as virtual functions that allow the derived class to define the input output mechanism for those choices.
+*/
 class StartUI
 {
 protected:
@@ -52,6 +57,11 @@ public:
 	int selected_row = 0;
 
 	StartUI();
+
+	/**
+	 * Called directly from update.
+	 * Something of a main function for the StartUI class.
+	*/
 	virtual int handle_nav() = 0;
 	virtual void init_menu() = 0;
 	virtual std::string *get_time_str() = 0;
