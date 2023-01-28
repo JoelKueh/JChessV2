@@ -6,218 +6,57 @@ extern std::ofstream debug_out;
 
 Game::Game(int white, int black, std::string *time_str)
 {
+	// Create the players who will be giving the moves
   	p_white = create_player(white);
   	p_black = create_player(black);
   	parse_time_str(time_str);
 
+	// Create the board to hold the pieces and moves.
   	board = new ChessBoard();
-
 	if (my_options.gui)
 		UI = new GameGUI();
 	else
 		UI = new GameCLI();
-}
 
-int Game::update()
-{
-	refresh();
-	UI->update_ui();
-	return update_states::M_OK;
-}
-
-void Game::update_pieces(char **board)
-{
-	for (int row = 0; row < 8; row++)
-	{
-		for (int col = 0; col < 8; col++)
-		{
-			mvwaddch(board_win, 2 * (row + 1) - 1, 4 * (col + 1) - 2, board[row][col]);
-		}
-	}
+	char **board_str = board->board_to_strarr();
+	UI->update_pieces(board_str);
+	delete board_str;
 }
 
 void Game::init()
 { 
-	init_board_win();
-  	init_timer_win();
-  	init_input_win();
+
+}
+
+int Game::update()
+{
+	// Handle general updates to the UI.
 	refresh();
-}
+	UI->update_ui();
 
-void Game::init_board_win()
-{
-	init_coords();
-	refresh();
-  	board_win = newwin(17, 33, 2, 4);
-  	draw_chess_board();
-
-	char **board_str = board->board_to_strarr();
-	update_pieces(board_str);
-	delete board_str;
-	
-	wrefresh(board_win);
-}
-
-void Game::init_coords()
-{
-	for (int i = 0; i < 8; i++)
+	// Handle updates to the time counts for each player.
+	auto time_s = std::chrono::system_clock::now();
+	auto time_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(time_s);
+	ulong time_now = time_ms.time_since_epoch().count();
+	if(board->white_turn)
 	{
-		char let = 'h' - i;
-		char num = '1' + i;
-		mvaddch(3 + 2 * i, 2, let);
-		mvaddch(3 + 2 * i, 38, let);
-		mvaddch(1, 6 + 4 * i, num);
-		mvaddch(19, 6 + 4 * i, num);
+		p_white->time = time_now - last_time;
+		UI->update_time(p_white->time / 1000, true);
 	}
-}
-
-void Game::draw_chess_board()
-{
-	draw_top_line();
-	for(int row = 1; row < 16; row++)
+	else
 	{
-		if(row % 2 == 0)
-		{
-			draw_other_line();
-		}
-		else
-		{
-			draw_piece_line();
-		}
+		p_black->time = time_now - last_time;
+		UI->update_time(p_white->time / 1000, false);
 	}
-	draw_bottom_line();
-}
+	last_time = time_now;
 
-void Game::draw_top_line()
-{
-	wchar_t output_str[34] = { 0 };
-	output_str[0] = d_r;
-	for(int col = 1; col < 32; col++)
-	{
-		if(col % 4 == 0)
-		{
-			output_str[col] = d_lr;
-		}
-		else
-		{
-			output_str[col] = hz_ln;
-		}
-	}
-	output_str[32] = d_l;
-	output_str[33]='\0';
-	wprintw(board_win, "%ls",output_str);
-}
+	// TODO: Handle game state checking.
 
-void Game::draw_piece_line()
-{
-	wchar_t output_str[34] = { 0 };
-	for(int col = 0; col < 33; col++)
-	{
-		if(col % 4 == 0)
-		{
-			output_str[col] = vr_ln;
-		}
-		else
-		{
-			output_str[col] = ' ';
-		}
-	}
-	output_str[33]='\0';
-	wprintw(board_win, "%ls",output_str);
-}
+	// TODO: Handle player move checking.
 
-void Game::draw_other_line()
-{
-	wchar_t output_str[34] = { 0 };
-	output_str[0] = du_r;
-	for(int col = 1; col < 32; col++)
-	{
-		if(col % 4 == 0)
-		{
-			output_str[col] = du_lr;
-		}
-		else
-		{
-			output_str[col] = hz_ln;
-		}
-	}
-	output_str[32] = du_l;
-	output_str[33]='\0';
-	wprintw(board_win, "%ls",output_str);
-}
+	// TODO:
 
-void Game::draw_bottom_line()
-{
-	wchar_t output_str[34] = { 0 };
-	output_str[0] = u_r;
-	for(int col = 1; col < 32; col++)
-	{
-		if(col % 4 == 0)
-		{
-			output_str[col] = u_lr;
-		}
-		else
-		{
-			output_str[col] = hz_ln;
-		}
-	}
-	output_str[32] = u_l;
-	output_str[33]='\0';
-	wprintw(board_win, "%ls",output_str);
-}
-
-void Game::init_timer_win()
-{
-  timer_win = newwin(5, 9, 8, 41);
-
-	wchar_t output_str[10] = { 0 };
-	output_str[9] = '\0';
-	output_str[0] = d_r;
-	for(int col = 1; col < 8; col++)
-	{
-		output_str[col] = hz_ln;
-	}
-	output_str[8] = d_l;
-	wprintw(timer_win,"%ls",output_str);
-	
-	for(int col = 0; col < 8; col++)
-	{
-		output_str[col] = ' ';
-	}
-	output_str[0] = vr_ln;
-	output_str[8] = vr_ln;
-	wprintw(timer_win, "%ls", output_str);
-
-	output_str[0] = du_r;
-	for(int col = 1; col < 8; col++)
-	{
-		output_str[col] = hz_ln;
-	}
-	output_str[8] = du_l;
-	wprintw(timer_win,"%ls",output_str);
-
-	for(int col = 0; col < 8; col++)
-	{
-		output_str[col] = ' ';
-	}
-	output_str[0] = vr_ln;
-	output_str[8] = vr_ln;
-	wprintw(timer_win, "%ls", output_str);
-
-	output_str[0] = u_r;
-	for(int col = 1; col < 8; col++)
-	{
-		output_str[col] = hz_ln;
-	}
-	output_str[8] = u_l;
-	wprintw(timer_win,"%ls",output_str);
-
-	wrefresh(timer_win);
-}
-
-void Game::init_input_win()
-{
-
+	return update_states::M_OK;
 }
 
 Player *Game::create_player(int type)
@@ -248,8 +87,8 @@ void Game::parse_time_str(std::string *time_str)
   	}
 
   	int time = std::stoi(time_str->substr(0, bar_location - 1));
-  	p_white->time = time;
-  	p_black->time = time;
+	p_white->time = time;
+	p_black->time = time;
 
   	increment = std::stoi(time_str->substr(bar_location + 2, time_str->size() - bar_location - 2));
 }

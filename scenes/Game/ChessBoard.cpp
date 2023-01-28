@@ -8,12 +8,11 @@ ChessBoard::ChessBoard()
 {
 	char init_board[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1\0";
 	fen_to_board(init_board);
-};
+}
 
-char **ChessBoard::board_to_strarr()
+char** ChessBoard::board_to_strarr()
 {
-	char **output;
-	output = new char*[8];
+	char** output = new char*[8];
 	for (int row = 0; row < 8; row++)
 	{
 		output[row] = new char[8];
@@ -53,7 +52,6 @@ char **ChessBoard::board_to_strarr()
 			}
 		}
 	}
-
 	return output;
 }
 
@@ -124,12 +122,12 @@ char *ChessBoard::read_fen_main(char *char_pos, int row, int col)
 
 		switch (this_char)
 		{
-			case 'k': write_bitset_to_square(&king,   row, col, is_white); break;
-			case 'q': write_bitset_to_square(&queen,  row, col, is_white); break;
-			case 'r': write_bitset_to_square(&rook,   row, col, is_white); break;
-			case 'b': write_bitset_to_square(&bishop, row, col, is_white); break;
-			case 'n': write_bitset_to_square(&knight, row, col, is_white); break;
-			case 'p': write_bitset_to_square(&pawn,   row, col, is_white); break;
+			case 'k': write_bitset_to_square(&pieces::king,   row, col, is_white); break;
+			case 'q': write_bitset_to_square(&pieces::queen,  row, col, is_white); break;
+			case 'r': write_bitset_to_square(&pieces::rook,   row, col, is_white); break;
+			case 'b': write_bitset_to_square(&pieces::bishop, row, col, is_white); break;
+			case 'n': write_bitset_to_square(&pieces::knight, row, col, is_white); break;
+			case 'p': write_bitset_to_square(&pieces::pawn,   row, col, is_white); break;
 		}
 		++col;
 	}
@@ -162,7 +160,7 @@ char *ChessBoard::read_fen_enp(char *enp_str)
 	int col = tolower(*enp_str) - 'a';
 	int row = 7 - (enp_str[1] - '1');
 
-	write_bitset_to_square(&pawn_e, row, col, !white_turn);
+	write_bitset_to_square(&pieces::pawn_e, row, col, !white_turn);
 	return enp_str + 3;
 }
 

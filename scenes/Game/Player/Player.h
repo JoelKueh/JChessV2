@@ -2,6 +2,7 @@
 
 #include "../Move.h"
 #include <bitset>
+#include <chrono>
 
 class Player
 {
@@ -16,7 +17,7 @@ public:
     P_TERMINATED = 2,
   };
 
-  int time;
+  ulong time;
 
   Player();
   virtual int get_status() = 0;

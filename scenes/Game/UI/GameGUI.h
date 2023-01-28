@@ -6,8 +6,9 @@ class GameGUI : public GameUI
 {
 public:
 	GameGUI();
+	virtual void init_ui();
 	virtual int update_ui();
-	virtual int update_pieces();
-	virtual int update_time(int new_time, bool white);
+	virtual void update_pieces(char **board);
+	virtual void update_time(int new_time, bool white);
 	virtual ~GameGUI();
 };

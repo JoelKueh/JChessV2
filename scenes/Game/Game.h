@@ -4,6 +4,7 @@
 #include <string>
 #include <chrono>
 #include <thread>
+#include <vector>
 #include "../StartMenu/StartMenu.h"
 #include "../Scene.h"
 #include "Player/Player.h"
@@ -35,34 +36,16 @@ public:
   virtual ~Game();
 
 private:
+  short increment;
+  std::vector<Move> move_history;
+
   Player *p_white;
   Player *p_black;
   ChessBoard *board;
   GameUI *UI;
-  short increment;
-  short white_time;
-  short black_time;
+
+  ulong last_time = 0;
 
   Player *create_player(int type);
   void parse_time_str(std::string *time_str);
-
-  void init_scene();
-  WINDOW *board_win;
-  WINDOW *timer_win;
-  WINDOW *input_win;
-  void init_board_win();
-  void init_coords();
-  
-  void update_pieces(char **board);
-  void update_piece_row(char *row);
-  void update_piece_col(char *col);
-  void update_piece_square(char square);
-  void draw_chess_board();
-  void draw_top_line();
-	void draw_piece_line();
-	void draw_other_line();
-	void draw_bottom_line();
-  
-  void init_timer_win();
-  void init_input_win();
 };
