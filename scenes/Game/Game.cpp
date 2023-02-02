@@ -37,7 +37,7 @@ int Game::update()
 	// Handle updates to the time counts for each player.
 	auto time_s = std::chrono::system_clock::now();
 	auto time_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(time_s);
-	ulong time_now = time_ms.time_since_epoch().count();
+	unsigned long long time_now = time_ms.time_since_epoch().count();
 	if(board->white_turn)
 	{
 		p_white->time = time_now - last_time;
@@ -51,6 +51,7 @@ int Game::update()
 	last_time = time_now;
 
 	// TODO: Handle game state checking.
+
 
 	// TODO: Handle player move checking.
 
@@ -91,6 +92,30 @@ void Game::parse_time_str(std::string *time_str)
 	p_black->time = time;
 
   	increment = std::stoi(time_str->substr(bar_location + 2, time_str->size() - bar_location - 2));
+}
+
+void Game::update_player_time()
+{
+	// Handle updates to the time counts for each player.
+	auto time_s = std::chrono::system_clock::now();
+	auto time_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(time_s);
+	ulong time_now = time_ms.time_since_epoch().count();
+	if(board->white_turn)
+	{
+		p_white->time = time_now - last_time;
+		UI->update_time(p_white->time / 1000, true);
+	}
+	else
+	{
+		p_black->time = time_now - last_time;
+		UI->update_time(p_white->time / 1000, false);
+	}
+	last_time = time_now;
+}
+
+void handle_player_move()
+{
+	
 }
 
 Scene* Game::create_new()

@@ -44,8 +44,10 @@ private:
   ChessBoard *board;
   GameUI *UI;
 
-  ulong last_time = 0;
+  unsigned long long last_time = 0;
 
   Player *create_player(int type);
   void parse_time_str(std::string *time_str);
+  void update_player_time();
+  void handle_player_move();
 };

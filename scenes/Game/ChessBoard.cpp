@@ -182,3 +182,28 @@ void ChessBoard::board_raw_w(int row, int col, int bit, bool val)
 {
 	board_raw[row*8*4+col*4+bit] = val;
 }
+
+int ChessBoard::get_board_state()
+{
+	// Search for Check
+	// Search for mate
+	// Else search for stalemate
+	// Return check, mate, or stalemate
+	
+	return board_states::normal;
+}
+
+bool ChessBoard::is_piece(std::bitset<3> *piece, int row, int col)
+{
+	bool result = (*piece)[0] & board_raw_r(row, col, 0);
+}
+
+ChessBoard::coord *ChessBoard::find_king(int king_color)
+{
+
+}
+
+int ChessBoard::in_check(int defending_color)
+{
+	
+}

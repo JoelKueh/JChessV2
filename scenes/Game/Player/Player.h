@@ -17,7 +17,7 @@ public:
     P_TERMINATED = 2,
   };
 
-  ulong time;
+  unsigned long long time;
 
   Player();
   virtual int get_status() = 0;

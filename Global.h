@@ -23,6 +23,9 @@ namespace pieces
 		QUEEN  = 6,
 		KING   = 7,
 	};
+
+	const short WHITE = 1;
+	const short BLACK = -1;
 }
 
 typedef uint32_t UChar;
