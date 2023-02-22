@@ -62,9 +62,8 @@ int main()
 {
 	tf_table.open("../../chessboard/tf_table.h");
 	tf_table << "#pragma once\n#include <cstdint>\n\n"
-		<< "namespace chessboard {\n\n"
-		<< "namespace fields {\n\n"
-		<< "const uint64_t tf_table[64][64] = {\n";
+		<< "namespace ChessBoard {\n\nnamespace Fields {\n\n"
+		<< "const uint64_t ChessBoard::Fields::tf_table[64][64] = {\n";
 
 	for (int i = 0; i < 64; i++) {
 		tf_table << "{";

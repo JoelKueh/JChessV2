@@ -2,6 +2,8 @@
 
 #include <cstdint>
 #include <string>
+#include "magics.h"
+#include "tf_table.h"
 
 namespace ChessBoard {
 
