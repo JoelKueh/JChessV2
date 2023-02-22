@@ -12,7 +12,7 @@ Game::Game(int white, int black, std::string *time_str)
   	parse_time_str(time_str);
 
 	// Create the board to hold the pieces and moves.
-  	board = new ChessBoard();
+  	board = new ChessBoard::BoardRep();
 	if (my_options.gui)
 		UI = new GameGUI();
 	else

@@ -8,7 +8,7 @@
 #include "../StartMenu/StartMenu.h"
 #include "../Scene.h"
 #include "Player/Player.h"
-#include "ChessBoard.h"
+#include "../../chessboard/ChessBoard.h"
 #include "Player/PlayerLocal.h"
 #include "Player/PlayerAI.h"
 #include "Player/PlayerRemote.h"
@@ -41,7 +41,7 @@ private:
 
   Player *p_white;
   Player *p_black;
-  ChessBoard *board;
+  ChessBoard::BoardRep *board;
   GameUI *UI;
 
   unsigned long long last_time = 0;

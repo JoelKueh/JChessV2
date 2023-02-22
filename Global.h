@@ -1,18 +1,9 @@
 #pragma once
 
-#include <bitset>
+#include <cstdint>
 
 namespace pieces
 {
-	const std::bitset<3> king   {"111"};
-	const std::bitset<3> queen  {"110"};
-	const std::bitset<3> rook   {"101"};
-	const std::bitset<3> bishop {"100"};
-	const std::bitset<3> knight {"011"};
-	const std::bitset<3> pawn   {"010"};
-	const std::bitset<3> pawn_e {"001"};
-	const std::bitset<3> none   {"000"};
-
 	enum piece {
 		NONE   = 0,
 		PAWN_E = 1,

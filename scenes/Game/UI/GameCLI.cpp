@@ -24,7 +24,7 @@ void GameCLI::update_pieces(char **board)
 	{
 		for (int col = 0; col < 8; col++)
 		{
-			mvwaddch(board_win, 2 * (row + 1) - 1, 4 * (col + 1) - 2, board[row][col]);
+			mvwaddch(board_win, 2 * (row + 1) - 1, 4 * (col + 1) - 2, board[7 - row][col]);
 		}
 	}
 	wrefresh(board_win);
@@ -42,7 +42,7 @@ void GameCLI::init_board_win()
 
 void GameCLI::init_timer_win()
 {
-  timer_win = newwin(5, 9, 8, 41);
+  	timer_win = newwin(5, 9, 8, 41);
 
 	wchar_t output_str[10] = { 0 };
 	output_str[9] = '\0';
