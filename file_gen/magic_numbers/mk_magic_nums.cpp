@@ -212,29 +212,25 @@ int BBits[64] = {
 int main() {
   int square;
 
-  std::ofstream mg_header;
+  std::ofstream mg_cpp;
   std::ifstream predefined;
   std::string buffer;
-  mg_header.open("../../chessboard/magics.h");
-  predefined.open("mj_nums.txt");
+  mg_cpp.open("../../chessboard/magics.cpp");
+  predefined.open("mgn.txt");
 
-	mg_header << "#pragma once\n#include <cstdint>\n\n";
-	mg_header << "namespace chessboard {\n\n"
-    << "namespace tables {\n\n";
+	mg_cpp << "#pragma once\n#include <cstdint>\n#include \"magics.h\"\n\n";
 
-  mg_header << "const uint64_t RMagic[64] = {\n";
+  mg_cpp << "const uint64_t ChessBoard::Fields::RMagic[64] = {\n";
   for(square = 0; square < 64; square++)
-    mg_header << "	0x" << std::hex << find_magic(square, RBits[square], 0) << "ULL,\n";
-  mg_header << "	};\n\n";
+    mg_cpp << "	0x" << std::hex << find_magic(square, RBits[square], 0) << "ULL,\n";
+  mg_cpp << "	};\n\n";
 
-  mg_header << "const uint64_t BMagic[64] = {\n";
+  mg_cpp << "const uint64_t ChessBoard::Fields::BMagic[64] = {\n";
   for(square = 0; square < 64; square++)
-    mg_header << "	0x" << std::hex << find_magic(square, BBits[square], 1) << "ULL,\n";
-  mg_header << "	};\n\n";
+    mg_cpp << "	0x" << std::hex << find_magic(square, BBits[square], 1) << "ULL,\n";
+  mg_cpp << "	};\n\n";
 
-  mg_header << predefined.rdbuf();
-
-  mg_header << "\n\n}\n\n}";
+  mg_cpp << predefined.rdbuf();
 
   return 0;
 }
