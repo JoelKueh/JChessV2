@@ -50,4 +50,6 @@ private:
   void parse_time_str(std::string *time_str);
   void update_player_time();
   void handle_player_move();
+
+  int last_selected_piece = -1;
 };

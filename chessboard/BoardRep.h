@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include <string>
-#include "magics.h"
+#include "move_gen/move_tables.h"
 #include "tf_table.h"
 
 namespace ChessBoard {
@@ -37,15 +37,29 @@ public:
 	void fen_to_board(char *fen_str);
 
 	int get_board_state();
+	uint64_t get_legal_moves(int sq);
+	uint64_t get_pseudo_moves(int sq);
+	int *get_moves_for_display(int sq);
 
 private:
 
-	uint64_t atk_pawn(bool is_white, int square);
-	uint64_t atk_knight(int square);
-	uint64_t atk_bishop(int square);
-	uint64_t atk_rook(int square);
-	uint64_t atk_queen(int square);
-	uint64_t atk_king(int square);
+	inline uint64_t atk_pawn(bool is_white, int sq);
+	inline uint64_t atk_wpawn(int sq);
+	inline uint64_t atk_bpawn(int sq);
+	inline uint64_t mv_pawn(bool is_white, int sq);
+	inline uint64_t mv_wpawn(int sq);
+	inline uint64_t mv_bpawn(int sq);
+	inline uint64_t enp_pawn(bool is_white, int sq);
+	inline uint64_t enp_wpawn(int sq);
+	inline uint64_t enp_bpawn(int sq);
+	inline uint64_t dmv_pawn(bool is_white, int sq);
+	inline uint64_t dmv_wpawn(int sq);
+	inline uint64_t dmv_bpawn(int sq);
+	inline uint64_t atk_knight(int sq);
+	inline uint64_t atk_bishop(int sq);
+	inline uint64_t atk_rook(int sq);
+	inline uint64_t atk_queen(int sq);
+	inline uint64_t atk_king(int sq);
 
 	// A bitset representation of the board. Each piece type has
 	// its own bitset. There are also union bitsets: white, black,
@@ -60,15 +74,12 @@ private:
 		uint64_t queen[2];
 		uint64_t king[2];
 	
-		uint64_t occupied; 
+		uint64_t occupied;
 	}; board_base my_board;
 
-	// A bitset for each square representing all of the squares
-	// that a piece on a particular square is threatening.	
-	uint64_t attacks_to[64];
-	// The inverse of the above, a bitset for each square representing
-	// all of the squares that are attacking said square.
-	uint64_t attacks_from[64];	
+	// Updated with every move, 0 if false, 1 if single check, 2 if double
+	// or greater.
+	short king_in_check[2];
 	// Stores all of the special moves that are currently possible.
 	// First four bits represent represent the catling rights. The 5th bit
 	// represents the availiabitlity of an enpassant. And the last three bits
@@ -81,6 +92,12 @@ private:
 
 	void write_piece(char piece, int square);
 	inline void set_enp(int col);
+	/**
+	 * @brief Reads the special_moves byte for enp.
+	 * 
+	 * @return Column of the enp piece (-1 if none are availiable).
+	 */
+	inline int get_enp();
 
 	void execute_move();
 	void undo_move();

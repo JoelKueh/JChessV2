@@ -31,6 +31,11 @@ const UChar du_l = 0x2524;
 const UChar u_r = 0x2514;
 const UChar u_lr = 0x2534;
 const UChar u_l = 0x2518;
+const UChar r_half = 0x2590;
+const UChar l_half = 0x258c;
+
+const wchar_t r_half_str[] = { r_half, '\0' };
+const wchar_t l_half_str[] = { l_half, '\0' };
 
 struct options
 {

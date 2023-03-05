@@ -215,11 +215,11 @@ int main() {
   std::ofstream mg_cpp;
   std::ifstream predefined;
   std::string buffer;
-  mg_cpp.open("../../chessboard/magics.h");
+  mg_cpp.open("../../chessboard/move_gen/magics.h");
   predefined.open("mj_nums.txt");
 
 	mg_cpp << "#pragma once\n#include <cstdint>\n#include \"magics.h\"\n\n"
-    <<"namespace ChessBoard {\n\nnamespace Fields {\n\n";
+    <<"namespace ChessBoard {\n\nnamespace MoveTables {\n\n";
 
   mg_cpp << "const uint64_t RMagic[64] = {\n";
   for(square = 0; square < 64; square++)

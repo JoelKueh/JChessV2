@@ -60,6 +60,8 @@ int init_terminal()
 	cbreak();
 	keypad(stdscr, TRUE);
 	curs_set(0);
+	use_default_colors();
+	start_color();
 
 	// Get terminal size
 	ioctl(STDOUT_FILENO, TIOCGWINSZ, &terminal);

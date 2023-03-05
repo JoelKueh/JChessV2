@@ -15,6 +15,16 @@ int GameGUI::update_ui()
 	return 0;
 }
 
+int GameGUI::get_selected_piece()
+{
+	return -1;
+}
+
+void GameGUI::set_highlight_mask(uint64_t mask)
+{
+
+}
+
 void GameGUI::update_pieces(char **board)
 {
 

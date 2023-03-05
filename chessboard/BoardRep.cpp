@@ -1,9 +1,233 @@
 #include "BoardRep.h"
 
+// DEBUG
+#include <fstream>
+extern std::ofstream debug_out;
+
+#define BYTE_TO_BINARY(byte)  \
+  (byte & 0x80 ? '1' : '0') << \
+  (byte & 0x40 ? '1' : '0') << \
+  (byte & 0x20 ? '1' : '0') << \
+  (byte & 0x10 ? '1' : '0') << \
+  (byte & 0x08 ? '1' : '0') << \
+  (byte & 0x04 ? '1' : '0') << \
+  (byte & 0x02 ? '1' : '0') << \
+  (byte & 0x01 ? '1' : '0') 
+
+
+#define U64_TO_BB(file, u64)  \
+  file << BYTE_TO_BINARY(u64 >> 56) << std::endl \
+  	<< BYTE_TO_BINARY(u64 >> 48) << std::endl \
+  	<< BYTE_TO_BINARY(u64 >> 40) << std::endl \
+  	<< BYTE_TO_BINARY(u64 >> 32) << std::endl \
+	<< BYTE_TO_BINARY(u64 >> 24) << std::endl \
+  	<< BYTE_TO_BINARY(u64 >> 16) << std::endl \
+	<< BYTE_TO_BINARY(u64 >> 8) << std::endl \
+    << BYTE_TO_BINARY(u64) << std::endl << std::endl; \
+/////////////////////////////
+
 ChessBoard::BoardRep::BoardRep()
 {
+	MoveTables::gen_move_tables();
 	char init_board[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 	fen_to_board(init_board);
+}
+
+int *ChessBoard::BoardRep::get_moves_for_display(int sq)
+{
+	int output[64];
+	
+}
+
+uint64_t ChessBoard::BoardRep::get_pseudo_moves(int sq)
+{
+	uint64_t mask = 1ULL << sq;
+	bool color = mask & my_board.color[1];
+	if (mask & (~my_board.occupied))
+		return 0;
+
+	if (mask & my_board.pawn[color]) {
+		uint64_t output = 0;
+		output |= atk_pawn(color, sq);
+		output |= mv_pawn(color, sq);
+		return output;
+	}
+
+	if (mask & my_board.knight[color])
+		return atk_knight(sq);
+
+	if (mask & my_board.bishop[color])
+		return atk_bishop(sq);
+
+	if (mask & my_board.rook[color])
+		return atk_rook(sq);
+
+	if (mask & my_board.queen[color])
+		return atk_queen(sq);
+
+	if (mask & my_board.king[color])
+		return atk_king(sq);
+
+	return 0;
+}
+
+// Generates all of the attacks that a pawn can make on a certain square.
+// Does not handle enpassant.
+inline uint64_t ChessBoard::BoardRep::atk_pawn(bool color, int sq)
+{	
+	if (color)
+		return atk_wpawn(sq);
+	else
+		return atk_bpawn(sq);
+}
+
+inline uint64_t ChessBoard::BoardRep::atk_wpawn(int sq)
+{
+	uint64_t output = 0;
+	uint64_t not_rcol = 0xFEFEFEFEFEFEFEFEULL;
+	uint64_t not_lcol = 0x7F7F7F7F7F7F7F7FULL;
+
+	// This may overflow, but that should not matter as overflow of a r-shift
+	// becomes zero.
+	output |= (1ULL << sq + 9) & not_rcol;
+	output |= (1ULL << sq + 7) & not_lcol;
+
+	return output;
+}
+
+inline uint64_t ChessBoard::BoardRep::atk_bpawn(int sq)
+{
+	uint64_t output = 0;
+	uint64_t not_rcol = 0xFEFEFEFEFEFEFEFEULL;
+	uint64_t not_lcol = 0x7F7F7F7F7F7F7F7FULL;
+
+	// This may overflow, but that should not matter as overflow of a r-shift
+	// becomes zero.
+	output |= (1ULL << sq - 9) & not_lcol;
+	output |= (1ULL << sq - 7) & not_rcol;
+
+	return output;
+}
+
+// Generates the non-threatening moves that a pawn can make.
+// Does not handle double moves.
+inline uint64_t ChessBoard::BoardRep::mv_pawn(bool color, int sq)
+{
+	if (color)
+		return mv_wpawn(sq);
+	else
+		return mv_bpawn(sq);
+}
+
+inline uint64_t ChessBoard::BoardRep::mv_wpawn(int sq)
+{
+	return (1ULL << sq + 8) & (~my_board.occupied);
+}
+
+inline uint64_t ChessBoard::BoardRep::mv_bpawn(int sq)
+{
+	return (1ULL << sq - 8) & (~my_board.occupied);
+}
+
+inline uint64_t ChessBoard::BoardRep::dmv_pawn(bool color, int sq)
+{
+	if (color)
+		return dmv_wpawn(sq);
+	else
+		return dmv_bpawn(sq);
+}
+
+inline uint64_t ChessBoard::BoardRep::dmv_wpawn(int sq)
+{
+	if (sq >= 16 || sq < 8)
+		return 0;
+	
+	uint64_t mask = (1ULL << sq + 8) | (1ULL << sq + 16);
+	if (mask & (~my_board.occupied))
+		return (1ULL << sq + 16);
+
+	return 0;
+}
+
+inline uint64_t ChessBoard::BoardRep::dmv_bpawn(int sq)
+{
+	if (sq >= 56 || sq < 48)
+		return 0;
+	
+	uint64_t mask = (1ULL << sq - 8) | (1ULL << sq - 16);
+	if (mask & (~my_board.occupied))
+		return (1ULL << sq - 16);
+
+	return 0;
+}
+
+inline uint64_t ChessBoard::BoardRep::enp_pawn(bool color, int sq)
+{
+	if (color)
+		return enp_wpawn(sq);
+	else
+		return enp_bpawn(sq);
+}
+
+inline uint64_t ChessBoard::BoardRep::enp_wpawn(int sq)
+{
+	int enp_col = get_enp();
+	if (enp_col == -1)
+		return 0;
+
+	if (sq < 24 || sq >= 32)
+		return 0;
+
+	if (sq % 8 + 1 == enp_col)
+		return 1ULL << sq + 9;
+	else if (sq % 8 - 1 == enp_col)
+		return 1ULL << sq + 7;
+
+	return 0;
+}
+
+inline uint64_t ChessBoard::BoardRep::enp_bpawn(int sq)
+{
+	int enp_col = get_enp();
+	if (enp_col == -1)
+		return 0;
+
+	if (sq < 32 || sq >= 40)
+		return 0;
+
+	if (sq % 8 + 1 == enp_col)
+		return 1ULL << sq - 7;
+	else if (sq % 8 - 1 == enp_col)
+		return 1ULL << sq - 9;
+
+	return 0;
+}
+
+inline uint64_t ChessBoard::BoardRep::atk_knight(int sq)
+{
+	return MoveTables::read_natk(sq);
+}
+
+inline uint64_t ChessBoard::BoardRep::atk_bishop(int sq)
+{
+	return MoveTables::read_batk(sq, my_board.occupied);
+}
+
+inline uint64_t ChessBoard::BoardRep::atk_rook(int sq)
+{
+	return MoveTables::read_ratk(sq, my_board.occupied);
+}
+
+inline uint64_t ChessBoard::BoardRep::atk_queen(int sq)
+{
+	uint64_t output = MoveTables::read_batk(sq, my_board.occupied);
+	output |= MoveTables::read_ratk(sq, my_board.occupied);
+	return output;
+}
+
+inline uint64_t ChessBoard::BoardRep::atk_king(int sq)
+{
+	return MoveTables::read_katk(sq);
 }
 
 char** ChessBoard::BoardRep::board_to_strarr()
@@ -109,11 +333,6 @@ void ChessBoard::BoardRep::wipe_board()
 
 	my_board.occupied = 0;
 
-	for (int i = 0; i < 64; i++) {
-		attacks_from[i] = 0;
-		attacks_to[i] = 0;
-	}
-
 	special_moves = 0;
 }
 
@@ -122,8 +341,6 @@ char *ChessBoard::BoardRep::read_fen_main(char *char_pos, int row, int col)
 	char this_char = *char_pos;
 	if (isdigit(this_char))
 	{
-		// As the Unicode values for ascii characters are right next to eachother, the Unicode for '0' can
-		// be subtracted from the number to get the value in integer form.
 		col += this_char - '0';
 	}
 	else if (this_char == '/')
@@ -234,4 +451,12 @@ inline void ChessBoard::BoardRep::set_enp(int col)
 {
 	special_moves = (special_moves & 0b11110000) ^ col << 5;
 	special_moves = special_moves ^ (1 << 4);
+}
+
+inline int ChessBoard::BoardRep::get_enp()
+{
+	if (0b00010000 & (~special_moves))
+		return -1;
+	
+	return special_moves >> 5;
 }

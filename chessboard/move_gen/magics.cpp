@@ -4,7 +4,7 @@
 // Equivalent to first_set_bit(), but also removes the bit in question.
 // Takes in a uint64, then uses bit hacks to create a key which
 // references the hash map above.
-int ChessBoard::Fields::pop_1st_bit(uint64_t *bb) {
+int ChessBoard::MoveTables::pop_1st_bit(uint64_t *bb) {
 	uint64_t b = *bb ^ (*bb - 1);
 	unsigned int fold = (unsigned) ((b & 0xffffffff) ^ (b >> 32));
 	*bb &= (*bb - 1);
@@ -12,7 +12,7 @@ int ChessBoard::Fields::pop_1st_bit(uint64_t *bb) {
 }
 
 // Returns an array of blockers given a square and a mask of occupancy bits.
-uint64_t ChessBoard::Fields::index_to_uint64(int index, int bits, uint64_t m) {
+uint64_t ChessBoard::MoveTables::index_to_uint64(int index, int bits, uint64_t m) {
 	int i, j;
 	uint64_t result = 0ULL;
 	for(i = 0; i < bits; i++) {
@@ -22,13 +22,13 @@ uint64_t ChessBoard::Fields::index_to_uint64(int index, int bits, uint64_t m) {
 	return result;
 }
 
-int ChessBoard::Fields::transform(uint64_t board, int magic, int bits) {
+int ChessBoard::MoveTables::transform(uint64_t board, int magic, int bits) {
 	return (board * magic) >> (64 - bits);
 }
 
 // Generates the relavent occupancy bit masks for a particular
 // square with a rook at that position.
-uint64_t ChessBoard::Fields::rmask(int sq) {
+uint64_t ChessBoard::MoveTables::rmask(int sq) {
 	uint64_t result = 0ULL;
 	int rk = sq/8, fl = sq%8, r, f;
 	for(r = rk+1; r <= 6; r++) result |= (1ULL << (fl + r*8));
@@ -40,7 +40,7 @@ uint64_t ChessBoard::Fields::rmask(int sq) {
 
 // Generates the relavent occupancy bit masks for a particular
 // square with a bishop at that position.
-uint64_t ChessBoard::Fields::bmask(int sq) {
+uint64_t ChessBoard::MoveTables::bmask(int sq) {
 	uint64_t result = 0ULL;
 	int rk = sq/8, fl = sq%8, r, f;
 	for(r=rk+1, f=fl+1; r<=6 && f<=6; r++, f++) result |= (1ULL << (f + r*8));
@@ -52,7 +52,7 @@ uint64_t ChessBoard::Fields::bmask(int sq) {
 
 // Generates the corresponding attack squares for the rook at a given position.
 // Breaks out if there is a blocker. This will be used to fill the hash table.
-uint64_t ChessBoard::Fields::ratt(int sq, uint64_t block) {
+uint64_t ChessBoard::MoveTables::ratt(int sq, uint64_t block) {
 	uint64_t result = 0ULL;
 	int rk = sq/8, fl = sq%8, r, f;
 	for(r = rk+1; r <= 7; r++) {
@@ -76,7 +76,7 @@ uint64_t ChessBoard::Fields::ratt(int sq, uint64_t block) {
 
 // Generates the corresponding attack squares for a bishop at a given position.
 // Breaks out if there is a blocker. This will be used to fill the hash table.
-uint64_t ChessBoard::Fields::batt(int sq, uint64_t block) {
+uint64_t ChessBoard::MoveTables::batt(int sq, uint64_t block) {
 	uint64_t result = 0ULL;
 	int rk = sq/8, fl = sq%8, r, f;
 	for(r = rk+1, f = fl+1; r <= 7 && f <= 7; r++, f++) {
@@ -98,17 +98,19 @@ uint64_t ChessBoard::Fields::batt(int sq, uint64_t block) {
 	return result;
 }
 
-void ChessBoard::Fields::hashtab(bool bishop) {
+void ChessBoard::MoveTables::hashtab(bool bishop) {
 	uint64_t legal_moves[4096], occupied[4096];
 	int i, j, k;
 
 	for (i = 0; i < 64; ++i) {
 		uint64_t mask = bishop ? bmask(i) : rmask(i);
-		int *atk_table = bishop ? BAtkTable[i] : RAtkTable[i];
+		uint64_t **atk_table = bishop ? &BAtkTable[i] : &RAtkTable[i];
 		int bits = bishop ? BBits[i] : RBits[i];
 		uint64_t magic = bishop ? BMagic[i] : RMagic[i];
+		uint64_t *occupancy = bishop ? &BOccupancy[i] : &ROccupancy[i];
+		*occupancy = mask;
 
-		atk_table = new int[(1 << bits)];
+		*atk_table = new uint64_t[(1 << bits)];
 		
 		for (j = 0; j < (1 << bits); ++j) {
 			occupied[j] = index_to_uint64(j, bits, mask);
@@ -116,13 +118,27 @@ void ChessBoard::Fields::hashtab(bool bishop) {
 		}
 		for (j = 0; j < (1 << bits); ++j) {
 			k = transform(occupied[j], magic, bits);
-			atk_table[j] = legal_moves[k];
+			(*atk_table)[k] = legal_moves[j];
 		}
 	}
 }
 
-void ChessBoard::Fields::hashtab()
+void ChessBoard::MoveTables::hashtab()
 {
 	hashtab(true);
 	hashtab(false);
+}
+
+uint64_t ChessBoard::MoveTables::read_ratk(int sq, uint64_t board)
+{
+	board &= ROccupancy[sq];
+	int index = transform(board, RMagic[sq], RBits[sq]);
+	return RAtkTable[sq][index];
+}
+
+uint64_t ChessBoard::MoveTables::read_batk(int sq, uint64_t board)
+{
+	board &= BOccupancy[sq];
+	int index = transform(board, BMagic[sq], BBits[sq]);
+	return BAtkTable[sq][index];
 }

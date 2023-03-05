@@ -4,7 +4,7 @@
 
 namespace ChessBoard {
 
-namespace Fields {
+namespace MoveTables {
 
 const uint64_t RMagic[64] = {
 	0xa8002c000108020ULL,
@@ -196,12 +196,17 @@ const int BBits[64] = {
 	6, 5, 5, 5, 5, 5, 5, 6
 };
 
-static int *RAtkTable[64];
-static int *BAtkTable[64];
+static uint64_t *RAtkTable[64];
+static uint64_t ROccupancy[64];
+static uint64_t *BAtkTable[64];
+static uint64_t BOccupancy[64];
 
 void hashtab(bool bishop);
 
 void hashtab();
+
+uint64_t read_ratk(int sq, uint64_t board);
+uint64_t read_batk(int sq, uint64_t board);
 }
 
 }

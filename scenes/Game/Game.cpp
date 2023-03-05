@@ -34,21 +34,14 @@ int Game::update()
 	refresh();
 	UI->update_ui();
 
+	int selected = UI->get_selected_piece();
+	if (selected != last_selected_piece) {
+		UI->set_highlight_mask(board->get_legal_moves(selected));
+		last_selected_piece = selected;
+	}
+
 	// Handle updates to the time counts for each player.
-	auto time_s = std::chrono::system_clock::now();
-	auto time_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(time_s);
-	unsigned long long time_now = time_ms.time_since_epoch().count();
-	if(board->white_turn)
-	{
-		p_white->time = time_now - last_time;
-		UI->update_time(p_white->time / 1000, true);
-	}
-	else
-	{
-		p_black->time = time_now - last_time;
-		UI->update_time(p_white->time / 1000, false);
-	}
-	last_time = time_now;
+	update_player_time();
 
 	// TODO: Handle game state checking.
 

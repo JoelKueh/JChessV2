@@ -6,15 +6,59 @@ GameCLI::GameCLI()
   	init_timer_win();
   	init_input_win();
 	refresh();
+
+	// TODO: MOVE THIS
+	init_ui();
 }
 
 void GameCLI::init_ui()
 {
+	init_color(SELECT_COLOR, 500, 500, 500);
+	init_color(PUSH_COLOR, 447, 651, 879);
+	init_color(CAPTURE_COLOR, 961, 365, 365);
+	init_color(SPECIAL_COLOR, 929, 913, 427);
 
+	init_pair(SELECT_COLOR, COLOR_BLACK, COLOR_WHITE);
+	init_pair(PUSH_COLOR, COLOR_BLACK, PUSH_COLOR);
+	init_pair(CAPTURE_COLOR, COLOR_BLACK, CAPTURE_COLOR);
+	init_pair(SPECIAL_COLOR, COLOR_BLACK, SPECIAL_COLOR);
+
+	init_pair(SELECT_INV, COLOR_WHITE, -1);
+	init_pair(PUSH_INV, PUSH_COLOR, -1);
+	init_pair(CAPTURE_INV, CAPTURE_COLOR, -1);
+	init_pair(SPECIAL_INV, SPECIAL_COLOR, -1);
 }
 
 int GameCLI::update_ui()
 {
+	bool do_redraw = true;
+	int input = wgetch(board_win);
+	switch (input) {
+	case KEY_DOWN:
+		cursor_row += 1;
+		cursor_row = cursor_row > 7 ? 7 : cursor_row;
+		break;
+	case KEY_UP:
+		cursor_row -= 1;
+		cursor_row = cursor_row < 0 ? 0 : cursor_row;
+		break;
+	case KEY_RIGHT:
+		cursor_col += 1;
+		cursor_col = cursor_col > 7 ? 7 : cursor_col;
+		break;
+	case KEY_LEFT:
+		cursor_col -= 1;
+		cursor_col = cursor_col < 0 ? 0 : cursor_col;
+		break;
+	defualt:
+		do_redraw = false;
+		break;
+	}
+
+	if (do_redraw) {
+		redraw_pieces();
+	}
+
 	return 1;
 }
 
@@ -24,10 +68,53 @@ void GameCLI::update_pieces(char **board)
 	{
 		for (int col = 0; col < 8; col++)
 		{
-			mvwaddch(board_win, 2 * (row + 1) - 1, 4 * (col + 1) - 2, board[7 - row][col]);
+			board_str[row][col] = board[row][col];
+		}
+	}
+	redraw_pieces();
+}
+
+void GameCLI::redraw_pieces()
+{
+	for (int row = 0; row < 8; row++)
+	{
+		for (int col = 0; col < 8; col++)
+		{
+			int color = -1;
+			if (1ULL << ((7 - row) * 8 + col) & highlight_mask)
+				color = PUSH_COLOR;
+
+			if (row == cursor_row && col == cursor_col)
+				color = SELECT_COLOR;
+			
+			if (color != -1) {
+				wattron(board_win, COLOR_PAIR(color + INV_OFFSET));
+				mvwaddwstr(board_win, 2 * (row + 1) - 1, 4 * (col + 1) - 3, r_half_str);
+				wattron(board_win, COLOR_PAIR(color));
+				waddch(board_win, board_str[7 - row][col]);
+				wattron(board_win, COLOR_PAIR(color + INV_OFFSET));
+				waddwstr(board_win, l_half_str);
+			} else {
+				mvwaddch(board_win, 2 * (row + 1) - 1, 4 * (col + 1) - 3, ' ');
+				waddch(board_win, board_str[7 - row][col]);
+				waddch(board_win, ' ');
+			}
+
+			wattroff(board_win, COLOR_PAIR(color + INV_OFFSET));
 		}
 	}
 	wrefresh(board_win);
+}
+
+int GameCLI::get_selected_piece()
+{
+	return (7 - cursor_row) * 8 + cursor_col;
+}
+
+void GameCLI::set_highlight_mask(uint64_t mask)
+{
+	highlight_mask = mask;
+	redraw_pieces();
 }
 
 void GameCLI::init_board_win()
@@ -35,6 +122,8 @@ void GameCLI::init_board_win()
 	init_coords();
 	refresh();
   	board_win = newwin(17, 33, 2, 4);
+	wtimeout(board_win, 500);
+	keypad(board_win, TRUE);
   	draw_chess_board();
 	
 	wrefresh(board_win);
