@@ -12,7 +12,7 @@ void GameGUI::init_ui()
 
 int GameGUI::update_ui()
 {
-	return 0;
+	return U_OK;
 }
 
 int GameGUI::get_selected_piece()
@@ -20,9 +20,24 @@ int GameGUI::get_selected_piece()
 	return -1;
 }
 
-void GameGUI::set_highlight_mask(uint64_t mask)
+void GameGUI::set_push_mask(uint64_t mask)
 {
 
+}
+
+void GameGUI::set_cap_mask(uint64_t mask)
+{
+
+}
+
+void GameGUI::set_special_mask(uint64_t mask)
+{
+
+}
+
+void GameGUI::redraw_pieces()
+{
+	
 }
 
 void GameGUI::update_pieces(char **board)

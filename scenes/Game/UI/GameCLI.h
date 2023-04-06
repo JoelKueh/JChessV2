@@ -8,7 +8,9 @@ class GameCLI : public GameUI
 {
 private:
 	char board_str[8][8] = { 0 };
-	uint64_t highlight_mask;
+	uint64_t push_mask;
+	uint64_t cap_mask;
+	uint64_t special_mask;
 
 	int cursor_col = 0;
 	int cursor_row = 0;
@@ -36,7 +38,6 @@ private:
   	void update_piece_row(char *row);
   	void update_piece_col(char *col);
   	void update_piece_square(char square);
-	void redraw_pieces();
   	void draw_chess_board();
   	void draw_top_line();
 	void draw_piece_line();
@@ -48,7 +49,10 @@ public:
 	virtual void init_ui();
 	virtual int update_ui();
 	virtual int get_selected_piece();
-	virtual void set_highlight_mask(uint64_t mask);
+	virtual void set_push_mask(uint64_t mask);
+	virtual void set_cap_mask(uint64_t mask);
+	virtual void set_special_mask(uint64_t mask);
+	virtual void redraw_pieces();
 	virtual void update_pieces(char **board);
 	virtual void update_time(int new_time, bool white);
 	virtual ~GameCLI();

@@ -10,7 +10,10 @@ public:
 	virtual int update_ui();
 	virtual void update_pieces(char **board);
 	virtual int get_selected_piece();
-	virtual void set_highlight_mask(uint64_t mask);
+	virtual void set_push_mask(uint64_t mask);
+	virtual void set_cap_mask(uint64_t mask);
+	virtual void set_special_mask(uint64_t mask);
+	virtual void redraw_pieces();
 	virtual void update_time(int new_time, bool white);
 	virtual ~GameGUI();
 };

@@ -32,12 +32,29 @@ int Game::update()
 {
 	// Handle general updates to the UI.
 	refresh();
-	UI->update_ui();
+	int state = UI->update_ui();
 
+	if (state == GameUI::state::U_WRITE) {
+		if (UI->write_buf.piece == ' ') {
+			board->delete_piece(UI->write_buf.sq);
+		} else {
+			board->write_piece(UI->write_buf.piece, UI->write_buf.sq);
+		}
+		UI->update_pieces(board->board_to_strarr());
+	}
+
+	// TODO: REFACTOR THIS
 	int selected = UI->get_selected_piece();
 	if (selected != last_selected_piece) {
-		UI->set_highlight_mask(board->get_legal_moves(selected));
+		ChessBoard::BoardRep::move_mask *moves
+			= board->get_mv_mask(selected);
+		UI->set_push_mask(moves->push);
+		UI->set_cap_mask(moves->cap);
+		UI->set_special_mask(moves->special);
+		UI->redraw_pieces();
 		last_selected_piece = selected;
+
+		delete moves;
 	}
 
 	// Handle updates to the time counts for each player.
@@ -55,17 +72,17 @@ int Game::update()
 
 Player *Game::create_player(int type)
 {
-  	switch (type)
-  	{
+	switch (type)
+	{
 	default:
-      	return new PlayerLocal();
-    case player_type::remote:
-      	return new PlayerRemote();
-    case player_type::AI:
-      	return new PlayerAI();
-    case player_type::TheFish:
-      	return new PlayerTheFish();
-  	}
+		return new PlayerLocal();
+	case player_type::remote:
+		return new PlayerRemote();
+	case player_type::AI:
+		return new PlayerAI();
+	case player_type::TheFish:
+		return new PlayerTheFish();
+	}
 }
 
 void Game::parse_time_str(std::string *time_str)
@@ -73,11 +90,11 @@ void Game::parse_time_str(std::string *time_str)
   	int bar_location;
   	for (int i = 0; i < time_str->size(); i++)
   	{
-    	if ((*time_str)[i] == '|')
-    	{
-      		bar_location = i;
-      		break;
-    	}
+		if ((*time_str)[i] == '|')
+		{
+			bar_location = i;
+			break;
+		}
   	}
 
   	int time = std::stoi(time_str->substr(0, bar_location - 1));

@@ -2,8 +2,10 @@
 
 #include <cstdint>
 #include <string>
+#include <bit>
 #include "move_gen/move_tables.h"
 #include "tf_table.h"
+#include "dir_table.h"
 
 namespace ChessBoard {
 
@@ -25,6 +27,12 @@ public:
 		int col;
 	};
 
+	struct move_mask {
+		uint64_t push;
+		uint64_t cap;
+		uint64_t special;
+	};
+
 	BoardRep();
 	bool white_turn;
 	short halfmove_clock = 0;
@@ -37,11 +45,24 @@ public:
 	void fen_to_board(char *fen_str);
 
 	int get_board_state();
+	int get_in_check(bool is_white);
 	uint64_t get_legal_moves(int sq);
 	uint64_t get_pseudo_moves(int sq);
-	int *get_moves_for_display(int sq);
+	move_mask *get_mv_mask(int sq);
+
+	void update_pins();
+	void update_pins(bool is_white);
+
+	// DEBUG: THIS SHOULD BE MADE PRIVATE
+	void write_piece(char piece, int square);
+	void delete_piece(int sq);
 
 private:
+
+	inline void pin_adjust(int sq, uint64_t *moves);
+	inline void pin_adjust(int sq, uint64_t *moves, bool is_white);
+	inline bool seen_by_king(int sq);
+	inline int find_king(bool is_white);
 
 	inline uint64_t atk_pawn(bool is_white, int sq);
 	inline uint64_t atk_wpawn(int sq);
@@ -79,18 +100,23 @@ private:
 
 	// Updated with every move, 0 if false, 1 if single check, 2 if double
 	// or greater.
-	short king_in_check[2];
+	short in_check[2];
 	// Stores all of the special moves that are currently possible.
 	// First four bits represent represent the catling rights. The 5th bit
 	// represents the availiabitlity of an enpassant. And the last three bits
 	// specify the column of that enpassant.
 	uint8_t special_moves;
+	// Stores all of the rays that contain pinned pieces. Slot 8
+	// in each array stores the union of valid rays storid in slots 0-7.
+	// Slots 0-7 are not zeroed out when this is updated. So the union must
+	// be checked first to see if the piece is actually pinned, then the
+	// actuall pinning ray can be found by searching from zero up.
+	uint64_t pins[2][9];
 
-	char *read_fen_main(char *start_char, int row = 7, int col = 0);
+	char *read_fen_main(char *start_char, int row = 0, int col = 0);
 	char *read_fen_castle(char *castle_str);
 	char *read_fen_enp(char *enp_str);
 
-	void write_piece(char piece, int square);
 	inline void set_enp(int col);
 	/**
 	 * @brief Reads the special_moves byte for enp.

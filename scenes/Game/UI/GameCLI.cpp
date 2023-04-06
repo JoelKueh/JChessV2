@@ -1,5 +1,9 @@
 #include "GameCLI.h"
 
+// DEBUG
+#include <fstream>
+extern std::ofstream debug_out;
+
 GameCLI::GameCLI()
 {
 	init_board_win();
@@ -31,24 +35,47 @@ void GameCLI::init_ui()
 
 int GameCLI::update_ui()
 {
-	bool do_redraw = true;
+	int state = U_OK;
+
+	bool do_redraw = false;
 	int input = wgetch(board_win);
 	switch (input) {
 	case KEY_DOWN:
 		cursor_row += 1;
 		cursor_row = cursor_row > 7 ? 7 : cursor_row;
+		do_redraw = true;
 		break;
 	case KEY_UP:
 		cursor_row -= 1;
 		cursor_row = cursor_row < 0 ? 0 : cursor_row;
+		do_redraw = true;
 		break;
 	case KEY_RIGHT:
 		cursor_col += 1;
 		cursor_col = cursor_col > 7 ? 7 : cursor_col;
+		do_redraw = true;
 		break;
 	case KEY_LEFT:
 		cursor_col -= 1;
 		cursor_col = cursor_col < 0 ? 0 : cursor_col;
+		do_redraw = true;
+		break;
+	case ' ':
+	case 'P':
+	case 'p':
+	case 'N':
+	case 'n':
+	case 'B':
+	case 'b':
+	case 'R':
+	case 'r':
+	case 'Q':
+	case 'q':
+	case 'K':
+	case 'k':
+		state = U_WRITE;
+		write_buf.piece = input;
+		write_buf.sq = cursor_row * 8 + cursor_col;
 		break;
 	defualt:
 		do_redraw = false;
@@ -59,7 +86,7 @@ int GameCLI::update_ui()
 		redraw_pieces();
 	}
 
-	return 1;
+	return state;
 }
 
 void GameCLI::update_pieces(char **board)
@@ -81,7 +108,7 @@ void GameCLI::redraw_pieces()
 		for (int col = 0; col < 8; col++)
 		{
 			int color = -1;
-			if (1ULL << ((7 - row) * 8 + col) & highlight_mask)
+			if (1ULL << (row * 8 + col) & push_mask)
 				color = PUSH_COLOR;
 
 			if (row == cursor_row && col == cursor_col)
@@ -89,14 +116,14 @@ void GameCLI::redraw_pieces()
 			
 			if (color != -1) {
 				wattron(board_win, COLOR_PAIR(color + INV_OFFSET));
-				mvwaddwstr(board_win, 2 * (row + 1) - 1, 4 * (col + 1) - 3, r_half_str);
+				mvwaddwstr(board_win, 2 * row + 1, 4 * col + 1, r_half_str);
 				wattron(board_win, COLOR_PAIR(color));
-				waddch(board_win, board_str[7 - row][col]);
+				waddch(board_win, board_str[row][col]);
 				wattron(board_win, COLOR_PAIR(color + INV_OFFSET));
 				waddwstr(board_win, l_half_str);
 			} else {
-				mvwaddch(board_win, 2 * (row + 1) - 1, 4 * (col + 1) - 3, ' ');
-				waddch(board_win, board_str[7 - row][col]);
+				mvwaddch(board_win, 2 * row + 1, 4 * col + 1, ' ');
+				waddch(board_win, board_str[row][col]);
 				waddch(board_win, ' ');
 			}
 
@@ -108,13 +135,22 @@ void GameCLI::redraw_pieces()
 
 int GameCLI::get_selected_piece()
 {
-	return (7 - cursor_row) * 8 + cursor_col;
+	return cursor_row * 8 + cursor_col;
 }
 
-void GameCLI::set_highlight_mask(uint64_t mask)
+void GameCLI::set_push_mask(uint64_t mask)
 {
-	highlight_mask = mask;
-	redraw_pieces();
+	push_mask = mask;
+}
+
+void GameCLI::set_cap_mask(uint64_t mask)
+{
+	cap_mask = mask;
+}
+
+void GameCLI::set_special_mask(uint64_t mask)
+{
+	special_mask = mask;
 }
 
 void GameCLI::init_board_win()

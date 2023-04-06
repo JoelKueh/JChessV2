@@ -1,6 +1,34 @@
 #include <cstdint>
 #include "magics.h"
 
+#include <bit>
+
+// DEBUG
+#include <fstream>
+extern std::ofstream debug_out;
+
+#define BYTE_TO_BINARY(byte)  \
+  (byte & 0x01 ? '1' : '0') << \
+  (byte & 0x02 ? '1' : '0') << \
+  (byte & 0x04 ? '1' : '0') << \
+  (byte & 0x08 ? '1' : '0') << \
+  (byte & 0x10 ? '1' : '0') << \
+  (byte & 0x20 ? '1' : '0') << \
+  (byte & 0x40 ? '1' : '0') << \
+  (byte & 0x80 ? '1' : '0')
+
+
+#define U64_TO_BB(file, u64)  \
+  file << BYTE_TO_BINARY(u64) << std::endl \
+	<< BYTE_TO_BINARY(u64 >> 8) << std::endl \
+  	<< BYTE_TO_BINARY(u64 >> 16) << std::endl \
+	<< BYTE_TO_BINARY(u64 >> 24) << std::endl \
+  	<< BYTE_TO_BINARY(u64 >> 32) << std::endl \
+  	<< BYTE_TO_BINARY(u64 >> 40) << std::endl \
+  	<< BYTE_TO_BINARY(u64 >> 48) << std::endl \
+    << BYTE_TO_BINARY(u64 >> 56) << std::endl << std::endl \
+/////////////////////////////
+
 // Equivalent to first_set_bit(), but also removes the bit in question.
 // Takes in a uint64, then uses bit hacks to create a key which
 // references the hash map above.
@@ -71,6 +99,13 @@ uint64_t ChessBoard::MoveTables::ratt(int sq, uint64_t block) {
 		result |= (1ULL << (f + rk*8));
 		if(block & (1ULL << (f + rk*8))) break;
 	}
+	// DEBUG
+	// debug_out << '\n' << sq << ": " << std::__popcount(block) << '\n';
+	// U64_TO_BB(debug_out, block);
+	// debug_out << '\n';
+	// U64_TO_BB(debug_out, result);
+	// debug_out << "\n---------------------" << std::endl;
+	
 	return result;
 }
 
@@ -95,6 +130,12 @@ uint64_t ChessBoard::MoveTables::batt(int sq, uint64_t block) {
 		result |= (1ULL << (f + r*8));
 		if(block & (1ULL << (f + r * 8))) break;
 	}
+	// DEBUG
+	// U64_TO_BB(debug_out, block);
+	// debug_out << "\n";
+	// U64_TO_BB(debug_out, result);
+	// debug_out << "\n---------------------" << std::endl;
+
 	return result;
 }
 
@@ -115,11 +156,32 @@ void ChessBoard::MoveTables::hashtab(bool bishop) {
 		for (j = 0; j < (1 << bits); ++j) {
 			occupied[j] = index_to_uint64(j, bits, mask);
 			legal_moves[j] = bishop ? batt(i, occupied[j]) : ratt(i, occupied[j]);
+
+			(*atk_table)[j] = 0; // DEBUG
 		}
+		int dupe = 0; // DEBUG
 		for (j = 0; j < (1 << bits); ++j) {
 			k = transform(occupied[j], magic, bits);
+
+			// DEBUG
+			if ((*atk_table)[k] != 0 && (*atk_table)[k] != legal_moves[j])
+				dupe++;
+
 			(*atk_table)[k] = legal_moves[j];
+			// if (k == 0 && i == 0) {
+			// 	U64_TO_BB(debug_out, (*atk_table)[k]);
+			// 	U64_TO_BB(debug_out, (*atk_table)[k]);
+			// }
 		}
+		// DEBUG
+		if (dupe)
+			debug_out << "WARNING: " << dupe << " collisions for "
+				<< (bishop ? "bishops" : "rooks") << " on square " << i
+				<< std::endl;
+		else
+			debug_out << "No collisions for "
+				<< (bishop ? "bishops" : "rooks") << " on square " << i
+				<< std::endl;
 	}
 }
 
@@ -133,7 +195,15 @@ uint64_t ChessBoard::MoveTables::read_ratk(int sq, uint64_t board)
 {
 	board &= ROccupancy[sq];
 	int index = transform(board, RMagic[sq], RBits[sq]);
+
+	// DEBUG
+	U64_TO_BB(debug_out, board);
+	U64_TO_BB(debug_out, (uint64_t)index);
+	U64_TO_BB(debug_out, RAtkTable[sq][index]);
+	debug_out << "\n-------------------" << std::endl;
+
 	return RAtkTable[sq][index];
+	U64_TO_BB(debug_out, (uint64_t)index);
 }
 
 uint64_t ChessBoard::MoveTables::read_batk(int sq, uint64_t board)

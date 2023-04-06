@@ -5,38 +5,117 @@
 extern std::ofstream debug_out;
 
 #define BYTE_TO_BINARY(byte)  \
-  (byte & 0x80 ? '1' : '0') << \
-  (byte & 0x40 ? '1' : '0') << \
-  (byte & 0x20 ? '1' : '0') << \
-  (byte & 0x10 ? '1' : '0') << \
-  (byte & 0x08 ? '1' : '0') << \
-  (byte & 0x04 ? '1' : '0') << \
+  (byte & 0x01 ? '1' : '0') << \
   (byte & 0x02 ? '1' : '0') << \
-  (byte & 0x01 ? '1' : '0') 
+  (byte & 0x04 ? '1' : '0') << \
+  (byte & 0x08 ? '1' : '0') << \
+  (byte & 0x10 ? '1' : '0') << \
+  (byte & 0x20 ? '1' : '0') << \
+  (byte & 0x40 ? '1' : '0') << \
+  (byte & 0x80 ? '1' : '0')
 
 
 #define U64_TO_BB(file, u64)  \
-  file << BYTE_TO_BINARY(u64 >> 56) << std::endl \
-  	<< BYTE_TO_BINARY(u64 >> 48) << std::endl \
-  	<< BYTE_TO_BINARY(u64 >> 40) << std::endl \
-  	<< BYTE_TO_BINARY(u64 >> 32) << std::endl \
-	<< BYTE_TO_BINARY(u64 >> 24) << std::endl \
-  	<< BYTE_TO_BINARY(u64 >> 16) << std::endl \
+  file << BYTE_TO_BINARY(u64) << std::endl \
 	<< BYTE_TO_BINARY(u64 >> 8) << std::endl \
-    << BYTE_TO_BINARY(u64) << std::endl << std::endl; \
+  	<< BYTE_TO_BINARY(u64 >> 16) << std::endl \
+	<< BYTE_TO_BINARY(u64 >> 24) << std::endl \
+  	<< BYTE_TO_BINARY(u64 >> 32) << std::endl \
+  	<< BYTE_TO_BINARY(u64 >> 40) << std::endl \
+  	<< BYTE_TO_BINARY(u64 >> 48) << std::endl \
+    << BYTE_TO_BINARY(u64 >> 56) << std::endl << std::endl \
 /////////////////////////////
 
 ChessBoard::BoardRep::BoardRep()
 {
 	MoveTables::gen_move_tables();
+	// Fields::gen_dir_table();
+
 	char init_board[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+	// char init_board[] = "2k5/8/8/8/3Q4/8/8/4K3 w KQkq - 0 1";
 	fen_to_board(init_board);
+	update_pins();
+
+	// DEBUG
+	U64_TO_BB(debug_out, my_board.color[1]);
 }
 
-int *ChessBoard::BoardRep::get_moves_for_display(int sq)
+int ChessBoard::BoardRep::get_in_check(bool is_white)
 {
-	int output[64];
-	
+	return in_check[is_white];
+}
+
+ChessBoard::BoardRep::move_mask *ChessBoard::BoardRep::get_mv_mask(int sq)
+{
+	move_mask *moves = new move_mask;
+	moves->push = get_pseudo_moves(sq);
+	// pin_adjust(sq, &(moves->push));
+
+	moves->cap = 0;
+	moves->special = 0;
+
+	return moves;
+}
+
+inline void ChessBoard::BoardRep::update_pins()
+{
+	update_pins(true);
+	update_pins(false);
+}
+
+inline void ChessBoard::BoardRep::update_pins(bool is_white)
+{
+	pins[is_white][8] = 0;
+
+	int king_sq = find_king(is_white);
+	uint64_t board = my_board.occupied;
+	uint64_t pinned = MoveTables::read_ratk(king_sq, board);
+	pinned |= MoveTables::read_batk(king_sq, board);
+	pinned &= my_board.color[is_white];
+	board ^= pinned;
+	uint64_t ratkrs = MoveTables::read_ratk(king_sq, board);
+	ratkrs &= (my_board.queen[is_white] ^ my_board.rook[is_white]);
+	uint64_t batkrs = MoveTables::read_batk(king_sq, board);
+	batkrs &= (my_board.queen[is_white] ^ my_board.rook[is_white]);
+
+	int i = 0;
+	while(ratkrs) {
+		int sq = MoveTables::pop_1st_bit(&ratkrs);
+		pins[is_white][i] = ChessBoard::Fields::tf_table[sq][king_sq];
+		pins[is_white][8] ^= pins[is_white][i];
+		++i;
+	}
+}
+
+inline void ChessBoard::BoardRep::pin_adjust(int sq, uint64_t *moves)
+{
+	bool is_white = (1ULL << sq) & my_board.color[1];
+	pin_adjust(sq, moves, is_white);
+}
+
+inline void ChessBoard::BoardRep::pin_adjust(int sq, uint64_t *moves,
+	bool is_white)
+{
+	uint64_t mask = 1ULL << sq;
+	if (!(mask & pins[is_white][8]))
+		return;
+
+	uint64_t *rays = pins[is_white];
+	// Iterate through pins until we find the ray that is pinning the piece.
+	while (!(*(rays++) & mask));
+	rays--;
+
+	*moves &= *rays;
+}
+
+inline bool ChessBoard::BoardRep::seen_by_king(int sq)
+{
+	uint64_t mask = atk_queen(find_king((1ULL << sq) & my_board.color[1]));
+}
+
+inline int ChessBoard::BoardRep::find_king(bool is_white)
+{
+	return std::__countr_zero(my_board.king[is_white]);
 }
 
 uint64_t ChessBoard::BoardRep::get_pseudo_moves(int sq)
@@ -89,8 +168,8 @@ inline uint64_t ChessBoard::BoardRep::atk_wpawn(int sq)
 
 	// This may overflow, but that should not matter as overflow of a r-shift
 	// becomes zero.
-	output |= (1ULL << sq + 9) & not_rcol;
-	output |= (1ULL << sq + 7) & not_lcol;
+	output |= (1ULL << sq - 9) & not_lcol;
+	output |= (1ULL << sq - 7) & not_rcol;
 
 	return output;
 }
@@ -103,8 +182,8 @@ inline uint64_t ChessBoard::BoardRep::atk_bpawn(int sq)
 
 	// This may overflow, but that should not matter as overflow of a r-shift
 	// becomes zero.
-	output |= (1ULL << sq - 9) & not_lcol;
-	output |= (1ULL << sq - 7) & not_rcol;
+	output |= (1ULL << sq + 9) & not_rcol;
+	output |= (1ULL << sq + 7) & not_lcol;
 
 	return output;
 }
@@ -121,12 +200,12 @@ inline uint64_t ChessBoard::BoardRep::mv_pawn(bool color, int sq)
 
 inline uint64_t ChessBoard::BoardRep::mv_wpawn(int sq)
 {
-	return (1ULL << sq + 8) & (~my_board.occupied);
+	return (1ULL << sq - 8) & (~my_board.occupied);
 }
 
 inline uint64_t ChessBoard::BoardRep::mv_bpawn(int sq)
 {
-	return (1ULL << sq - 8) & (~my_board.occupied);
+	return (1ULL << sq + 8) & (~my_board.occupied);
 }
 
 inline uint64_t ChessBoard::BoardRep::dmv_pawn(bool color, int sq)
@@ -139,24 +218,24 @@ inline uint64_t ChessBoard::BoardRep::dmv_pawn(bool color, int sq)
 
 inline uint64_t ChessBoard::BoardRep::dmv_wpawn(int sq)
 {
-	if (sq >= 16 || sq < 8)
-		return 0;
-	
-	uint64_t mask = (1ULL << sq + 8) | (1ULL << sq + 16);
-	if (mask & (~my_board.occupied))
-		return (1ULL << sq + 16);
-
-	return 0;
-}
-
-inline uint64_t ChessBoard::BoardRep::dmv_bpawn(int sq)
-{
 	if (sq >= 56 || sq < 48)
 		return 0;
 	
 	uint64_t mask = (1ULL << sq - 8) | (1ULL << sq - 16);
 	if (mask & (~my_board.occupied))
 		return (1ULL << sq - 16);
+
+	return 0;
+}
+
+inline uint64_t ChessBoard::BoardRep::dmv_bpawn(int sq)
+{
+	if (sq >= 16 || sq < 8)
+		return 0;
+	
+	uint64_t mask = (1ULL << sq + 8) | (1ULL << sq + 16);
+	if (mask & (~my_board.occupied))
+		return (1ULL << sq + 16);
 
 	return 0;
 }
@@ -175,13 +254,13 @@ inline uint64_t ChessBoard::BoardRep::enp_wpawn(int sq)
 	if (enp_col == -1)
 		return 0;
 
-	if (sq < 24 || sq >= 32)
+	if (sq < 32 || sq >= 40)
 		return 0;
 
 	if (sq % 8 + 1 == enp_col)
-		return 1ULL << sq + 9;
+		return 1ULL << sq - 7;
 	else if (sq % 8 - 1 == enp_col)
-		return 1ULL << sq + 7;
+		return 1ULL << sq - 9;
 
 	return 0;
 }
@@ -192,13 +271,13 @@ inline uint64_t ChessBoard::BoardRep::enp_bpawn(int sq)
 	if (enp_col == -1)
 		return 0;
 
-	if (sq < 32 || sq >= 40)
+	if (sq < 24 || sq >= 32)
 		return 0;
 
 	if (sq % 8 + 1 == enp_col)
-		return 1ULL << sq - 7;
+		return 1ULL << sq + 9;
 	else if (sq % 8 - 1 == enp_col)
-		return 1ULL << sq - 9;
+		return 1ULL << sq + 7;
 
 	return 0;
 }
@@ -230,6 +309,8 @@ inline uint64_t ChessBoard::BoardRep::atk_king(int sq)
 	return MoveTables::read_katk(sq);
 }
 
+// IMPROPPER FREEING OF THIS IS DONE LITERALLY EVERYWHERE
+// FIX ASAP
 char** ChessBoard::BoardRep::board_to_strarr()
 {
 	char** output = new char*[8];
@@ -346,7 +427,7 @@ char *ChessBoard::BoardRep::read_fen_main(char *char_pos, int row, int col)
 	else if (this_char == '/')
 	{
 		col = 0;
-		row--;
+		++row;
 	}
 	else if (this_char == ' ')
 	{
@@ -436,6 +517,8 @@ void ChessBoard::BoardRep::write_piece(char piece, int square)
 		piece_board = &my_board.king[is_white];
 		color_board = &my_board.color[is_white];
 		break;
+	case ' ':
+
 	default:
 		piece_board = &my_board.pawn[is_white];
 		color_board = &my_board.color[is_white];
@@ -445,6 +528,20 @@ void ChessBoard::BoardRep::write_piece(char piece, int square)
 	(*piece_board) |= UINT64_C(1) << square;
 	(*color_board) |= UINT64_C(1) << square;
 	my_board.occupied |= UINT64_C(1) << square;
+}
+
+void ChessBoard::BoardRep::delete_piece(int sq)
+{
+	for (int i = 0; i <= 1; ++i) {
+		my_board.pawn[i] &= ~(1ULL << sq);
+		my_board.knight[i] &= ~(1ULL << sq);
+		my_board.bishop[i] &= ~(1ULL << sq);
+		my_board.rook[i] &= ~(1ULL << sq);
+		my_board.queen[i] &= ~(1ULL << sq);
+		my_board.king[i] &= ~(1ULL << sq);
+		my_board.color[i] &= ~(1ULL << sq);
+	}
+	my_board.occupied &= ~(1ULL << sq);
 }
 
 inline void ChessBoard::BoardRep::set_enp(int col)
