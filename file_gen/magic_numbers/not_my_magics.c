@@ -73,10 +73,10 @@ int pop_1st_bit(uint64_t *bb) {
 // Returns an array of blockers given a square and a mask of occupancy bits.
 uint64_t index_to_uint64(int index, int bits, uint64_t m) {
   // DEBUG
-  printf("%d\n", index);
-  printf("%d\n", bits);
-  U64_TO_BB(m);
-  printf("-----------------\n\n");
+  // printf("%d\n", index);
+  // printf("%d\n", bits);
+  // U64_TO_BB(m);
+  // printf("-----------------\n\n");
   ///////////////////////
 
   int i, j;
@@ -87,8 +87,8 @@ uint64_t index_to_uint64(int index, int bits, uint64_t m) {
   }
 
   //DEBUG
-  U64_TO_BB(result);
-  printf("==============================\n\n");
+  // U64_TO_BB(result);
+  // printf("==============================\n\n");
   //////////////
   return result;
 }

@@ -35,9 +35,6 @@ ChessBoard::BoardRep::BoardRep()
 	// char init_board[] = "2k5/8/8/8/3Q4/8/8/4K3 w KQkq - 0 1";
 	fen_to_board(init_board);
 	update_pins();
-
-	// DEBUG
-	U64_TO_BB(debug_out, my_board.color[1]);
 }
 
 int ChessBoard::BoardRep::get_in_check(bool is_white)
@@ -45,16 +42,26 @@ int ChessBoard::BoardRep::get_in_check(bool is_white)
 	return in_check[is_white];
 }
 
-ChessBoard::BoardRep::move_mask *ChessBoard::BoardRep::get_mv_mask(int sq)
+void ChessBoard::BoardRep::check_adjust(int sq, uint64_t *moves)
 {
-	move_mask *moves = new move_mask;
-	moves->push = get_pseudo_moves(sq);
-	// pin_adjust(sq, &(moves->push));
+	bool is_white = (1ULL << sq) & my_board.color[1];
+	check_adjust(sq, moves, is_white);
+}
 
-	moves->cap = 0;
-	moves->special = 0;
+void ChessBoard::BoardRep::check_adjust(int sq, uint64_t *moves, bool is_white)
+{
 
-	return moves;
+}
+
+void ChessBoard::BoardRep::get_mv_mask(move_mask *mask, int sq)
+{
+	mask->push = get_pseudo_moves(sq);
+	pin_adjust(sq, &(mask->push));
+
+	mask->cap = 0;
+	mask->special = 0;
+
+	update_pins();
 }
 
 inline void ChessBoard::BoardRep::update_pins()
@@ -74,15 +81,24 @@ inline void ChessBoard::BoardRep::update_pins(bool is_white)
 	pinned &= my_board.color[is_white];
 	board ^= pinned;
 	uint64_t ratkrs = MoveTables::read_ratk(king_sq, board);
-	ratkrs &= (my_board.queen[is_white] ^ my_board.rook[is_white]);
+	ratkrs &= (my_board.queen[!is_white] ^ my_board.rook[!is_white]);
 	uint64_t batkrs = MoveTables::read_batk(king_sq, board);
-	batkrs &= (my_board.queen[is_white] ^ my_board.rook[is_white]);
+	batkrs &= (my_board.queen[!is_white] ^ my_board.rook[!is_white]);
 
 	int i = 0;
 	while(ratkrs) {
 		int sq = MoveTables::pop_1st_bit(&ratkrs);
 		pins[is_white][i] = ChessBoard::Fields::tf_table[sq][king_sq];
 		pins[is_white][8] ^= pins[is_white][i];
+
+		++i;
+	}
+
+	while(batkrs) {
+		int sq = MoveTables::pop_1st_bit(&batkrs);
+		pins[is_white][i] = ChessBoard::Fields::tf_table[sq][king_sq];
+		pins[is_white][8] ^= pins[is_white][i];
+
 		++i;
 	}
 }
@@ -311,27 +327,15 @@ inline uint64_t ChessBoard::BoardRep::atk_king(int sq)
 
 // IMPROPPER FREEING OF THIS IS DONE LITERALLY EVERYWHERE
 // FIX ASAP
-char** ChessBoard::BoardRep::board_to_strarr()
+void ChessBoard::BoardRep::board_to_strarr(char brdstr[8][8])
 {
-	char** output = new char*[8];
-	for (int row = 0; row < 8; row++)
-	{
-		output[row] = new char[8];
-
-		for (int col = 0; col < 8; col++)
-		{
-			output[row][col] = ' ';
-		}
-	}
-
 	for (int row = 0; row < 8; row++)
 	{
 		for (int col = 0; col < 8; col++)
 		{
-			output[row][col] = square_to_char(row * 8 + col);
+			brdstr[row][col] = square_to_char(row * 8 + col);
 		}
 	}
-	return output;
 }
 
 char ChessBoard::BoardRep::square_to_char(int square)

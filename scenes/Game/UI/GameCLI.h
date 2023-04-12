@@ -53,7 +53,7 @@ public:
 	virtual void set_cap_mask(uint64_t mask);
 	virtual void set_special_mask(uint64_t mask);
 	virtual void redraw_pieces();
-	virtual void update_pieces(char **board);
+	virtual void update_pieces(char board[8][8]);
 	virtual void update_time(int new_time, bool white);
 	virtual ~GameCLI();
 };

@@ -18,9 +18,9 @@ Game::Game(int white, int black, std::string *time_str)
 	else
 		UI = new GameCLI();
 
-	char **board_str = board->board_to_strarr();
+	char board_str[8][8];
+	board->board_to_strarr(board_str);
 	UI->update_pieces(board_str);
-	delete board_str;
 }
 
 void Game::init()
@@ -40,21 +40,21 @@ int Game::update()
 		} else {
 			board->write_piece(UI->write_buf.piece, UI->write_buf.sq);
 		}
-		UI->update_pieces(board->board_to_strarr());
+		char board_str[8][8];
+		board->board_to_strarr(board_str);
+		UI->update_pieces(board_str);
 	}
 
 	// TODO: REFACTOR THIS
 	int selected = UI->get_selected_piece();
 	if (selected != last_selected_piece) {
-		ChessBoard::BoardRep::move_mask *moves
-			= board->get_mv_mask(selected);
-		UI->set_push_mask(moves->push);
-		UI->set_cap_mask(moves->cap);
-		UI->set_special_mask(moves->special);
+		ChessBoard::BoardRep::move_mask moves;
+		board->get_mv_mask(&moves, selected);
+		UI->set_push_mask(moves.push);
+		UI->set_cap_mask(moves.cap);
+		UI->set_special_mask(moves.special);
 		UI->redraw_pieces();
 		last_selected_piece = selected;
-
-		delete moves;
 	}
 
 	// Handle updates to the time counts for each player.

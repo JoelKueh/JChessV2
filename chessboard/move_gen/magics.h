@@ -156,7 +156,7 @@ int pop_1st_bit(uint64_t *bb);
 // Returns an array of blockers given a square and a mask of occupancy bits.
 uint64_t index_to_uint64(int index, int bits, uint64_t m);
 
-int transform(uint64_t board, int magic, int bits);
+int transform(uint64_t board, uint64_t magic, int bits);
 
 // Generates the relavent occupancy bit masks for a particular
 // square with a rook at that position.

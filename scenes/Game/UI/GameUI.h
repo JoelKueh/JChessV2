@@ -31,7 +31,7 @@ public:
 	GameUI();
 	virtual void init_ui() = 0;
 	virtual int update_ui() = 0;
-	virtual void update_pieces(char **board) = 0;
+	virtual void update_pieces(char board[8][8]) = 0;
 	virtual int get_selected_piece() = 0;
 	virtual void set_push_mask(uint64_t mask) = 0;
 	virtual void set_cap_mask(uint64_t mask) = 0;

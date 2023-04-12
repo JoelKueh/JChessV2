@@ -89,7 +89,7 @@ int GameCLI::update_ui()
 	return state;
 }
 
-void GameCLI::update_pieces(char **board)
+void GameCLI::update_pieces(char board[8][8])
 {
 	for (int row = 0; row < 8; row++)
 	{

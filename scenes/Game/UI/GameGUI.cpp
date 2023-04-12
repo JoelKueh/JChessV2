@@ -40,7 +40,7 @@ void GameGUI::redraw_pieces()
 	
 }
 
-void GameGUI::update_pieces(char **board)
+void GameGUI::update_pieces(char board[8][8])
 {
 
 }

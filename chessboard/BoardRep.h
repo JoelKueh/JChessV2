@@ -37,7 +37,7 @@ public:
 	bool white_turn;
 	short halfmove_clock = 0;
 	short fullmove_number = 0;
-	char** board_to_strarr();
+	void board_to_strarr(char brdstr[8][8]);
 	char square_to_char(int square);
 	char up_if_white(char piece, bool is_white);
 
@@ -48,7 +48,7 @@ public:
 	int get_in_check(bool is_white);
 	uint64_t get_legal_moves(int sq);
 	uint64_t get_pseudo_moves(int sq);
-	move_mask *get_mv_mask(int sq);
+	void get_mv_mask(move_mask *mask, int sq);
 
 	void update_pins();
 	void update_pins(bool is_white);
@@ -61,6 +61,8 @@ private:
 
 	inline void pin_adjust(int sq, uint64_t *moves);
 	inline void pin_adjust(int sq, uint64_t *moves, bool is_white);
+	inline void check_adjust(int sq, uint64_t *moves);
+	inline void check_adjust(int sq, uint64_t *moves, bool is_white);
 	inline bool seen_by_king(int sq);
 	inline int find_king(bool is_white);
 

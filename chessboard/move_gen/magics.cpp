@@ -50,7 +50,7 @@ uint64_t ChessBoard::MoveTables::index_to_uint64(int index, int bits, uint64_t m
 	return result;
 }
 
-int ChessBoard::MoveTables::transform(uint64_t board, int magic, int bits) {
+int ChessBoard::MoveTables::transform(uint64_t board, uint64_t magic, int bits) {
 	return (board * magic) >> (64 - bits);
 }
 
@@ -99,12 +99,6 @@ uint64_t ChessBoard::MoveTables::ratt(int sq, uint64_t block) {
 		result |= (1ULL << (f + rk*8));
 		if(block & (1ULL << (f + rk*8))) break;
 	}
-	// DEBUG
-	// debug_out << '\n' << sq << ": " << std::__popcount(block) << '\n';
-	// U64_TO_BB(debug_out, block);
-	// debug_out << '\n';
-	// U64_TO_BB(debug_out, result);
-	// debug_out << "\n---------------------" << std::endl;
 	
 	return result;
 }
@@ -130,11 +124,6 @@ uint64_t ChessBoard::MoveTables::batt(int sq, uint64_t block) {
 		result |= (1ULL << (f + r*8));
 		if(block & (1ULL << (f + r * 8))) break;
 	}
-	// DEBUG
-	// U64_TO_BB(debug_out, block);
-	// debug_out << "\n";
-	// U64_TO_BB(debug_out, result);
-	// debug_out << "\n---------------------" << std::endl;
 
 	return result;
 }
@@ -159,29 +148,26 @@ void ChessBoard::MoveTables::hashtab(bool bishop) {
 
 			(*atk_table)[j] = 0; // DEBUG
 		}
-		int dupe = 0; // DEBUG
+		// int dupe = 0; // DEBUG
+		// debug_out << (bishop ? "BISHOPS" : "ROOKS") << " ON SQUARE: " << i << std::endl; // DEBUG
 		for (j = 0; j < (1 << bits); ++j) {
+
 			k = transform(occupied[j], magic, bits);
 
 			// DEBUG
-			if ((*atk_table)[k] != 0 && (*atk_table)[k] != legal_moves[j])
-				dupe++;
+			// if ((*atk_table)[k] != 0 && (*atk_table)[k] != legal_moves[j]) {
+			// 	dupe++;
+			// }
 
 			(*atk_table)[k] = legal_moves[j];
-			// if (k == 0 && i == 0) {
-			// 	U64_TO_BB(debug_out, (*atk_table)[k]);
-			// 	U64_TO_BB(debug_out, (*atk_table)[k]);
-			// }
 		}
 		// DEBUG
-		if (dupe)
-			debug_out << "WARNING: " << dupe << " collisions for "
-				<< (bishop ? "bishops" : "rooks") << " on square " << i
-				<< std::endl;
-		else
-			debug_out << "No collisions for "
-				<< (bishop ? "bishops" : "rooks") << " on square " << i
-				<< std::endl;
+		// if (dupe)
+		// 	debug_out << "WARNING: " << dupe << " COLLISIONS" << std::endl;
+		// else
+		// 	debug_out << "NO COLLISIONS" << std::endl;
+		
+		// debug_out << "\n----------------------------" << std::endl;
 	}
 }
 
@@ -197,10 +183,10 @@ uint64_t ChessBoard::MoveTables::read_ratk(int sq, uint64_t board)
 	int index = transform(board, RMagic[sq], RBits[sq]);
 
 	// DEBUG
-	U64_TO_BB(debug_out, board);
-	U64_TO_BB(debug_out, (uint64_t)index);
-	U64_TO_BB(debug_out, RAtkTable[sq][index]);
-	debug_out << "\n-------------------" << std::endl;
+	// U64_TO_BB(debug_out, board);
+	// U64_TO_BB(debug_out, (uint64_t)index);
+	// U64_TO_BB(debug_out, RAtkTable[sq][index]);
+	// debug_out << "\n-------------------" << std::endl;
 
 	return RAtkTable[sq][index];
 	U64_TO_BB(debug_out, (uint64_t)index);
