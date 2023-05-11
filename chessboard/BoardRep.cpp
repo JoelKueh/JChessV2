@@ -126,7 +126,10 @@ inline void ChessBoard::BoardRep::pin_adjust(int sq, uint64_t *moves,
 
 inline bool ChessBoard::BoardRep::seen_by_king(int sq)
 {
+	// TODO: TEST THIS, been way too long since I ever wrote it. Not sure
+	// what it was supposed to do anymore
 	uint64_t mask = atk_queen(find_king((1ULL << sq) & my_board.color[1]));
+	return mask & (1ULL << sq);
 }
 
 inline int ChessBoard::BoardRep::find_king(bool is_white)

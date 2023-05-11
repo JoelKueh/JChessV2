@@ -3,7 +3,7 @@
 #include <iostream>
 #include <sys/ioctl.h>
 #include <unistd.h>
-#include "lib/GLFW/glfw3.h"
+#include <GLFW/glfw3.h>
 
 #include "scenes/StartMenu/StartMenu.h"
 #include "Global.h"
