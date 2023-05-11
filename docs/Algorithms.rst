@@ -96,16 +96,16 @@ bitboards.
 
 The magic bitboard algoritm hashes a position by getting rid of all of the bits
 that are not relavent to a particular move. For a rook on square a8, the
-relavent bits are as follows:
+relavent bits are as follows.::
 
-. x x x x x x .
-x . . . . . . .
-x . . . . . . .
-x . . . . . . .
-x . . . . . . .
-x . . . . . . .
-x . . . . . . .
-. . . . . . . .
+        . x x x x x x .
+        x . . . . . . .
+        x . . . . . . .
+        x . . . . . . .
+        x . . . . . . .
+        x . . . . . . .
+        x . . . . . . .
+        . . . . . . . .
 
 Notice that there are 12 relavent bits in this set. If a piece is in any of
 these squares, it will inhibit the possible number of squares that a rook can
@@ -113,16 +113,16 @@ see.
 
 To get a hash of this position, we ideally want to shift all of these bits into
 the 12 lowest bits. The best way to do this is an algorithm that looks like
-this: (remember that by my definition, the square a8 is the lowest order bit)
+this: (remember that by my definition, the square a8 is the lowest order bit)::
 
-. x x x x x x .                            . . . . . . . .
-x . . . . . . .                            . . . . . . . .
-x . . . . . . .                            . . . . . . . .
-x . . . . . . .                            . . . . . . . .
-x . . . . . . .  * MAGIC_FOR_ROOK_ON_A8 =  . . . . . . . .
-x . . . . . . .                            . . . . . . . .
-x . . . . . . .                            . . . . x x x x
-. . . . . . . .                            x x x x x x x x
+        . x x x x x x .                            . . . . . . . .
+        x . . . . . . .                            . . . . . . . .
+        x . . . . . . .                            . . . . . . . .
+        x . . . . . . .                            . . . . . . . .
+        x . . . . . . .  * MAGIC_FOR_ROOK_ON_A8 =  . . . . . . . .
+        x . . . . . . .                            . . . . . . . .
+        x . . . . . . .                            . . . . x x x x
+        . . . . . . . .                            x x x x x x x x
 
 The purpose of the magic number is to shift all of the relavent bits to the
 top of the number. They do not have to be in the same order as they were before
