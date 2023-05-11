@@ -37,11 +37,11 @@ representation based around bitboards. In this representation, there is a
 of redundant union bitboards (e.g. occupancy, white, and black boards). The
 representation itself is quite intuitive, a 4x4 example is below.::
 
-Board          WKing      BRook     BPawn     Occupancy
-. K . .        0 1 0 0    0 0 0 0   0 0 0 0   0 1 0 0 
-. . r .        0 0 0 0    0 0 1 0   0 0 0 0   0 0 1 0
-. . . .  --->  0 0 0 0    0 0 0 0   0 0 0 0   0 0 0 0
-. . p .        0 0 0 0    0 0 0 0   0 0 1 0   0 0 1 0
+        Board          WKing      BRook     BPawn     Occupancy
+        . K . .        0 1 0 0    0 0 0 0   0 0 0 0   0 1 0 0 
+        . . r .        0 0 0 0    0 0 1 0   0 0 0 0   0 0 1 0
+        . . . .  --->  0 0 0 0    0 0 0 0   0 0 0 0   0 0 0 0
+        . . p .        0 0 0 0    0 0 0 0   0 0 1 0   0 0 1 0
 
 In my implementation, the top left square from white's perspective (or a8)
 is the lowest order bit, and the bottom right is the highest order bit.
