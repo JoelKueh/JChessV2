@@ -71,7 +71,7 @@ const uint64_t RMagic[64] = {
 	0x1004400080a13ULL,
 	0x4000011008020084ULL,
 	0x26002114058042ULL,
-	};
+};
 
 const uint64_t BMagic[64] = {
 	0x89a1121896040240ULL,
@@ -138,7 +138,7 @@ const uint64_t BMagic[64] = {
 	0x10008830412a00ULL,
 	0x2520081090008908ULL,
 	0x40102000a0a60140ULL,
-	};
+};
 
 // A hash map for the pop_1st_bit function below.
 const int BitTable[64] = {
