@@ -35,7 +35,7 @@ The board representation that is used in this project is a piece-centric board
 representation based around bitboards. In this representation, there is a
 64-bit integer (called a bitboard) for every piece type, as well as a couple
 of redundant union bitboards (e.g. occupancy, white, and black boards). The
-representition itself is quite intuitive, a 4x4 example is below.
+representation itself is quite intuitive, a 4x4 example is below.::
 
 Board          WKing      BRook     BPawn     Occupancy
 . K . .        0 1 0 0    0 0 0 0   0 0 0 0   0 1 0 0 
