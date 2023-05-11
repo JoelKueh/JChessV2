@@ -14,7 +14,6 @@
 std::ofstream debug_out;
 
 Scene *my_scene;
-
 options my_options;
 
 // TERMINAL GLOBALS
