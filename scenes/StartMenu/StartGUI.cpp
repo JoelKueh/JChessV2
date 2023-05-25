@@ -14,7 +14,7 @@ void StartGUI::init_menu()
 
 std::string *StartGUI::get_time_str()
 {
-  return NULL;
+  return nullptr;
 }
 
 void StartGUI::update_selected_row()

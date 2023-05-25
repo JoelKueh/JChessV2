@@ -187,8 +187,8 @@ inline uint64_t ChessBoard::BoardRep::atk_wpawn(int sq)
 
 	// This may overflow, but that should not matter as overflow of a r-shift
 	// becomes zero.
-	output |= (1ULL << sq - 9) & not_lcol;
-	output |= (1ULL << sq - 7) & not_rcol;
+	output |= (1ULL << (sq - 9)) & not_lcol;
+	output |= (1ULL << (sq - 7)) & not_rcol;
 
 	return output;
 }
@@ -201,8 +201,8 @@ inline uint64_t ChessBoard::BoardRep::atk_bpawn(int sq)
 
 	// This may overflow, but that should not matter as overflow of a r-shift
 	// becomes zero.
-	output |= (1ULL << sq + 9) & not_rcol;
-	output |= (1ULL << sq + 7) & not_lcol;
+	output |= (1ULL << (sq + 9)) & not_rcol;
+	output |= (1ULL << (sq + 7)) & not_lcol;
 
 	return output;
 }
@@ -219,12 +219,12 @@ inline uint64_t ChessBoard::BoardRep::mv_pawn(bool color, int sq)
 
 inline uint64_t ChessBoard::BoardRep::mv_wpawn(int sq)
 {
-	return (1ULL << sq - 8) & (~my_board.occupied);
+	return (1ULL << (sq - 8)) & (~my_board.occupied);
 }
 
 inline uint64_t ChessBoard::BoardRep::mv_bpawn(int sq)
 {
-	return (1ULL << sq + 8) & (~my_board.occupied);
+	return (1ULL << (sq + 8)) & (~my_board.occupied);
 }
 
 inline uint64_t ChessBoard::BoardRep::dmv_pawn(bool color, int sq)
@@ -240,9 +240,9 @@ inline uint64_t ChessBoard::BoardRep::dmv_wpawn(int sq)
 	if (sq >= 56 || sq < 48)
 		return 0;
 	
-	uint64_t mask = (1ULL << sq - 8) | (1ULL << sq - 16);
+	uint64_t mask = (1ULL << (sq - 8)) | (1ULL << (sq - 16));
 	if (mask & (~my_board.occupied))
-		return (1ULL << sq - 16);
+		return (1ULL << (sq - 16));
 
 	return 0;
 }
@@ -252,9 +252,9 @@ inline uint64_t ChessBoard::BoardRep::dmv_bpawn(int sq)
 	if (sq >= 16 || sq < 8)
 		return 0;
 	
-	uint64_t mask = (1ULL << sq + 8) | (1ULL << sq + 16);
+	uint64_t mask = (1ULL << (sq + 8)) | (1ULL << (sq + 16));
 	if (mask & (~my_board.occupied))
-		return (1ULL << sq + 16);
+		return (1ULL << (sq + 16));
 
 	return 0;
 }
@@ -277,9 +277,9 @@ inline uint64_t ChessBoard::BoardRep::enp_wpawn(int sq)
 		return 0;
 
 	if (sq % 8 + 1 == enp_col)
-		return 1ULL << sq - 7;
+		return 1ULL << (sq - 7);
 	else if (sq % 8 - 1 == enp_col)
-		return 1ULL << sq - 9;
+		return 1ULL << (sq - 9);
 
 	return 0;
 }
@@ -294,9 +294,9 @@ inline uint64_t ChessBoard::BoardRep::enp_bpawn(int sq)
 		return 0;
 
 	if (sq % 8 + 1 == enp_col)
-		return 1ULL << sq + 9;
+		return 1ULL << (sq + 9);
 	else if (sq % 8 - 1 == enp_col)
-		return 1ULL << sq + 7;
+		return 1ULL << (sq + 7);
 
 	return 0;
 }
@@ -345,7 +345,7 @@ char ChessBoard::BoardRep::square_to_char(int square)
 {
 	uint64_t manip = UINT64_C(1) << square;
 
-	if (my_board.occupied & manip == 0)
+	if ((my_board.occupied & manip) == 0)
 		return ' ';
 
 	// If there is a white piece on square, then is_white is true, else it is false.
