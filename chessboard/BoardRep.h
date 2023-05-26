@@ -45,13 +45,13 @@ public:
 	void fen_to_board(char *fen_str);
 
 	int get_board_state();
-	int get_in_check(bool is_white);
+	int get_checks(bool is_white);
 	uint64_t get_legal_moves(int sq);
 	uint64_t get_pseudo_moves(int sq);
 	void get_mv_mask(move_mask *mask, int sq);
 
-	void update_pins();
-	void update_pins(bool is_white);
+	void update_pins_and_checks();
+	void update_pins_and_checks(bool is_white);
 
 	// DEBUG: THIS SHOULD BE MADE PRIVATE
 	void write_piece(char piece, int square);
@@ -100,9 +100,8 @@ private:
 		uint64_t occupied;
 	}; board_base my_board;
 
-	// Updated with every move, 0 if false, 1 if single check, 2 if double
-	// or greater.
-	short in_check[2];
+	// The curent squares that are checking the king.
+	uint64_t checkers[2];
 	// Stores all of the special moves that are currently possible.
 	// First four bits represent represent the catling rights. The 5th bit
 	// represents the availiabitlity of an enpassant. And the last three bits

@@ -1,4 +1,5 @@
 #include "BoardRep.h"
+#include "move_gen/magics.h"
 
 // DEBUG
 #include <fstream>
@@ -29,17 +30,20 @@ extern std::ofstream debug_out;
 ChessBoard::BoardRep::BoardRep()
 {
 	MoveTables::gen_move_tables();
+	
+	// PROBABLY NOT NEEDED
+	// TODO: REMOVE?
 	// Fields::gen_dir_table();
 
 	char init_board[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 	// char init_board[] = "2k5/8/8/8/3Q4/8/8/4K3 w KQkq - 0 1";
 	fen_to_board(init_board);
-	update_pins();
+	update_pins_and_checks();
 }
 
-int ChessBoard::BoardRep::get_in_check(bool is_white)
+int ChessBoard::BoardRep::get_checks(bool is_white)
 {
-	return in_check[is_white];
+	return std::__popcount(checkers[is_white]);
 }
 
 void ChessBoard::BoardRep::check_adjust(int sq, uint64_t *moves)
@@ -50,40 +54,81 @@ void ChessBoard::BoardRep::check_adjust(int sq, uint64_t *moves)
 
 void ChessBoard::BoardRep::check_adjust(int sq, uint64_t *moves, bool is_white)
 {
+	int num_checkers = std::__popcount(checkers[is_white]);
 
+	if (num_checkers == 0)
+		return;
+
+	if (num_checkers >= 2 &&
+		!(my_board.king[is_white] & 1ULL << sq))
+	{
+		*moves = 0;
+		return;
+	}
+
+	int king_sq = find_king(is_white);
+	uint64_t blocks = checkers[is_white] | Fields::tf_table[sq][king_sq];
+
+	*moves &= blocks;
 }
 
 void ChessBoard::BoardRep::get_mv_mask(move_mask *mask, int sq)
 {
+	uint64_t manip = 1ULL << sq;
+	bool is_white = manip & my_board.color[1];
+
+	// Pseudo Moves contains both push and cap masks, the push mask
+	// will be manipulated and then AND'ed with the color boards to
+	// create thecap mask.
 	mask->push = get_pseudo_moves(sq);
 	pin_adjust(sq, &(mask->push));
+	check_adjust(sq, &(mask->push));
 
 	mask->cap = 0;
 	mask->special = 0;
 
-	update_pins();
+	// DEBUG?
+	update_pins_and_checks();
 }
 
-inline void ChessBoard::BoardRep::update_pins()
+inline void ChessBoard::BoardRep::update_pins_and_checks()
 {
-	update_pins(true);
-	update_pins(false);
+	update_pins_and_checks(true);
+	update_pins_and_checks(false);
 }
 
-inline void ChessBoard::BoardRep::update_pins(bool is_white)
+inline void ChessBoard::BoardRep::update_pins_and_checks(bool is_white)
 {
+	// Zeroing old data (checkers doesn't need to be zero'd)
 	pins[is_white][8] = 0;
 
+	// Preliminary work
 	int king_sq = find_king(is_white);
 	uint64_t board = my_board.occupied;
+	uint64_t checkers;
 	uint64_t pinned = MoveTables::read_ratk(king_sq, board);
 	pinned |= MoveTables::read_batk(king_sq, board);
-	pinned &= my_board.color[is_white];
-	board ^= pinned;
+	board ^= pinned & my_board.color[is_white];
+	checkers = pinned & my_board.color[!is_white];
+
+	// Handle Checks
+	uint64_t rchkrs = MoveTables::read_ratk(king_sq, checkers);
+	rchkrs &= (my_board.queen[!is_white] ^ my_board.rook[!is_white]);
+	uint64_t bchkrs = MoveTables::read_batk(king_sq, checkers);
+	bchkrs &= (my_board.queen[!is_white] ^ my_board.bishop[!is_white]);
+	uint64_t nchkrs = MoveTables::read_natk(king_sq);
+	nchkrs &= my_board.knight[!is_white];
+
+	this->checkers[is_white] = rchkrs | bchkrs | nchkrs;
+
+	// Hanlde Pins
 	uint64_t ratkrs = MoveTables::read_ratk(king_sq, board);
 	ratkrs &= (my_board.queen[!is_white] ^ my_board.rook[!is_white]);
 	uint64_t batkrs = MoveTables::read_batk(king_sq, board);
-	batkrs &= (my_board.queen[!is_white] ^ my_board.rook[!is_white]);
+	batkrs &= (my_board.queen[!is_white] ^ my_board.bishop[!is_white]);
+	
+	ratkrs &= ~pinned;
+	batkrs &= ~pinned;
 
 	int i = 0;
 	while(ratkrs) {
