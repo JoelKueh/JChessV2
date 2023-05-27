@@ -2,5 +2,4 @@ out
 *.sw
 .vscode
 *.out
-build/*
 .cache
