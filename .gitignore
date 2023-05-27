@@ -4,3 +4,4 @@ out
 *.out
 .cache
 build/*
+!build/README.md
