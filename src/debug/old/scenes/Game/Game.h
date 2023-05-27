@@ -8,7 +8,7 @@
 #include "../StartMenu/StartMenu.h"
 #include "../Scene.h"
 #include "Player/Player.h"
-#include "../../chessboard/BoardRep.h"
+#include "../../../../common/chessboard/BoardRep.h"
 #include "Player/PlayerLocal.h"
 #include "Player/PlayerAI.h"
 #include "Player/PlayerRemote.h"
