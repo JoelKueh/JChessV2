@@ -173,10 +173,12 @@ void ChessBoard::BoardRep::get_mv_mask(move_mask *mask, int sq)
 	{
 		mask->cap = atk_pawn(is_white, sq) & my_board.color[!is_white];
 
-		// This is a bit hacky, but should make fairly fast.
-		// It handles pins by assuming that the 
+		// This is a bit hacky, but should make double pawn
+		// moves fairly fast.
+		// It handles pins by assuming that the double move will be
+		// blocked if and only if the single move was blocked.
 		int dir = is_white ? -1 : 1;
-		int row = is_white ? 7 : 1;
+		int row = is_white ? 6 : 1;
 		if (!(1ULL << (sq + dir * 16) & my_board.occupied)
 				&& (1ULL << (sq + dir * 8) & mask->push)
 				&& (sq / 8 == row)) 
