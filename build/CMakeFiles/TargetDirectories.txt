@@ -1,0 +1,4 @@
+/home/joel/src/cpp/JChessV2/build/CMakeFiles/chessboard.dir
+/home/joel/src/cpp/JChessV2/build/CMakeFiles/old_debug.dir
+/home/joel/src/cpp/JChessV2/build/CMakeFiles/edit_cache.dir
+/home/joel/src/cpp/JChessV2/build/CMakeFiles/rebuild_cache.dir
