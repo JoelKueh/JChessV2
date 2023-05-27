@@ -111,6 +111,12 @@ void GameCLI::redraw_pieces()
 			if (1ULL << (row * 8 + col) & push_mask)
 				color = PUSH_COLOR;
 
+			if (1ULL << (row * 8 + col) & cap_mask)
+				color = CAPTURE_COLOR;
+
+			if (1ULL << (row * 8 + col) & special_mask)
+				color = SPECIAL_COLOR;
+
 			if (row == cursor_row && col == cursor_col)
 				color = SELECT_COLOR;
 			

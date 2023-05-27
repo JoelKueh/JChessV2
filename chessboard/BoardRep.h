@@ -45,13 +45,13 @@ public:
 	void fen_to_board(char *fen_str);
 
 	int get_board_state();
-	int get_in_check(bool is_white);
+	int get_checks(bool is_white);
 	uint64_t get_legal_moves(int sq);
 	uint64_t get_pseudo_moves(int sq);
 	void get_mv_mask(move_mask *mask, int sq);
 
-	void update_pins();
-	void update_pins(bool is_white);
+	void update_pins_and_checks();
+	void update_pins_and_checks(bool is_white);
 
 	// DEBUG: THIS SHOULD BE MADE PRIVATE
 	void write_piece(char piece, int square);
@@ -63,6 +63,7 @@ private:
 	inline void pin_adjust(int sq, uint64_t *moves, bool is_white);
 	inline void check_adjust(int sq, uint64_t *moves);
 	inline void check_adjust(int sq, uint64_t *moves, bool is_white);
+	inline void king_mv_adjust(int sq, uint64_t *moves, bool is_white);
 	inline bool seen_by_king(int sq);
 	inline int find_king(bool is_white);
 
@@ -72,9 +73,12 @@ private:
 	inline uint64_t mv_pawn(bool is_white, int sq);
 	inline uint64_t mv_wpawn(int sq);
 	inline uint64_t mv_bpawn(int sq);
+
+	// Not Used?
 	inline uint64_t enp_pawn(bool is_white, int sq);
 	inline uint64_t enp_wpawn(int sq);
 	inline uint64_t enp_bpawn(int sq);
+
 	inline uint64_t dmv_pawn(bool is_white, int sq);
 	inline uint64_t dmv_wpawn(int sq);
 	inline uint64_t dmv_bpawn(int sq);
@@ -83,6 +87,20 @@ private:
 	inline uint64_t atk_rook(int sq);
 	inline uint64_t atk_queen(int sq);
 	inline uint64_t atk_king(int sq);
+
+	uint64_t get_legal_castle_mask(int sq, bool is_white);
+	bool can_ksk(bool is_white);
+	bool can_qsk(bool is_white);
+ 
+	uint64_t get_legal_enp_mask(int sq, bool is_white);
+
+	bool is_threatened(int sq);
+	bool is_threatened(int sq, bool is_white);
+	
+	const uint64_t WHITE_KSK = 0x4000000000000000;
+	const uint64_t BLACK_KSK = 0x0000000000000040;
+	const uint64_t WHITE_QSK = 0x0400000000000000;
+	const uint64_t BLACK_QSK = 0x0000000000000004;
 
 	// A bitset representation of the board. Each piece type has
 	// its own bitset. There are also union bitsets: white, black,
@@ -100,9 +118,8 @@ private:
 		uint64_t occupied;
 	}; board_base my_board;
 
-	// Updated with every move, 0 if false, 1 if single check, 2 if double
-	// or greater.
-	short in_check[2];
+	// The curent squares that are checking the king.
+	uint64_t checkers[2];
 	// Stores all of the special moves that are currently possible.
 	// First four bits represent represent the catling rights. The 5th bit
 	// represents the availiabitlity of an enpassant. And the last three bits
@@ -114,6 +131,9 @@ private:
 	// be checked first to see if the piece is actually pinned, then the
 	// actuall pinning ray can be found by searching from zero up.
 	uint64_t pins[2][9];
+	// Stores all of the squares that are currently threatened
+	// (e.g squares that the king cannot legally move to)
+	uint64_t atktab[2];
 
 	char *read_fen_main(char *start_char, int row = 0, int col = 0);
 	char *read_fen_castle(char *castle_str);
