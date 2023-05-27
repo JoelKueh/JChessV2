@@ -1,2 +1,0 @@
-/usr/bin/ar qc lib/libchessboard.a CMakeFiles/chessboard.dir/src/common/chessboard/BoardRep.cpp.o CMakeFiles/chessboard.dir/src/common/chessboard/dir_table.cpp.o CMakeFiles/chessboard.dir/src/common/chessboard/move_gen/magics.cpp.o CMakeFiles/chessboard.dir/src/common/chessboard/move_gen/move_tables.cpp.o
-/usr/bin/ranlib lib/libchessboard.a
