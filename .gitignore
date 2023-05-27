@@ -2,4 +2,4 @@ out
 *.sw
 .vscode
 *.out
-build
+build/*
