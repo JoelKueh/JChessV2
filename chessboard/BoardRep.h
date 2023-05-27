@@ -72,9 +72,12 @@ private:
 	inline uint64_t mv_pawn(bool is_white, int sq);
 	inline uint64_t mv_wpawn(int sq);
 	inline uint64_t mv_bpawn(int sq);
+
+	// Not Used?
 	inline uint64_t enp_pawn(bool is_white, int sq);
 	inline uint64_t enp_wpawn(int sq);
 	inline uint64_t enp_bpawn(int sq);
+
 	inline uint64_t dmv_pawn(bool is_white, int sq);
 	inline uint64_t dmv_wpawn(int sq);
 	inline uint64_t dmv_bpawn(int sq);
@@ -83,6 +86,20 @@ private:
 	inline uint64_t atk_rook(int sq);
 	inline uint64_t atk_queen(int sq);
 	inline uint64_t atk_king(int sq);
+
+	uint64_t get_legal_castle_mask(int sq, bool is_white);
+	bool can_ksk(bool is_white);
+	bool can_qsk(bool is_white);
+ 
+	uint64_t get_legal_enp_mask(int sq, bool is_white);
+
+	bool is_threatened(int sq);
+	bool is_threatened(int sq, bool is_white);
+	
+	const uint64_t WHITE_KSK = 0x4000000000000000;
+	const uint64_t BLACK_KSK = 0x0000000000000040;
+	const uint64_t WHITE_QSK = 0x0400000000000000;
+	const uint64_t BLACK_QSK = 0x0000000000000004;
 
 	// A bitset representation of the board. Each piece type has
 	// its own bitset. There are also union bitsets: white, black,

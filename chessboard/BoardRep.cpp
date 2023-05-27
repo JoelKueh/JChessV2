@@ -1,5 +1,6 @@
 #include "BoardRep.h"
 #include "move_gen/magics.h"
+#include "tf_table.h"
 
 // DEBUG
 #include <fstream>
@@ -35,7 +36,8 @@ ChessBoard::BoardRep::BoardRep()
 	// TODO: REMOVE?
 	// Fields::gen_dir_table();
 
-	char init_board[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+	//char init_board[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+	char init_board[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq f6 0 1";
 	// char init_board[] = "2k5/8/8/8/3Q4/8/8/4K3 w KQkq - 0 1";
 	fen_to_board(init_board);
 	update_pins_and_checks();
@@ -55,21 +57,60 @@ void ChessBoard::BoardRep::check_adjust(int sq, uint64_t *moves)
 void ChessBoard::BoardRep::check_adjust(int sq, uint64_t *moves, bool is_white)
 {
 	int num_checkers = std::__popcount(checkers[is_white]);
+	uint64_t curr_sq = 1ULL << sq;
 
 	if (num_checkers == 0)
 		return;
 
 	if (num_checkers >= 2 &&
-		!(my_board.king[is_white] & 1ULL << sq))
+		!(my_board.king[is_white] & curr_sq))
 	{
 		*moves = 0;
 		return;
 	}
 
 	int king_sq = find_king(is_white);
-	uint64_t blocks = checkers[is_white] | Fields::tf_table[sq][king_sq];
+	int checkr_sq = std::__countr_zero(checkers[is_white]);
+	uint64_t blocks = Fields::tf_table[checkr_sq][king_sq];
 
-	*moves &= blocks;
+	debug_out << "TF_TABLE" << std::endl;
+	U64_TO_BB(debug_out, Fields::tf_table[sq][king_sq]);
+
+	// DEBUG
+	debug_out << "BLOCKS" << std::endl;
+	U64_TO_BB(debug_out, blocks);
+	debug_out << std::endl << std::endl;
+
+	if (my_board.king[is_white] & curr_sq)
+		*moves &= ~blocks;
+	else
+		*moves &= blocks;
+}
+
+uint64_t ChessBoard::BoardRep::get_legal_enp_mask(int sq, bool is_white)
+{
+	uint64_t mask = enp_pawn(is_white, sq);
+	if (!mask)
+		return 0;
+
+	uint64_t board = my_board.occupied;
+	int row = is_white ? 4 : 3;
+	uint64_t manip = (1ULL << sq)
+		| (1ULL << (row * 8 + (special_moves & 0b11100000)));
+	board &= ~manip;
+
+	int enp_row = is_white ? 5 : 2;
+	board |= 1ULL << (enp_row * 8 + (special_moves & 0b11100000));
+
+	uint64_t ratkrs = board & MoveTables::read_ratk(sq, board);
+	ratkrs &= my_board.rook[is_white] | my_board.queen[is_white];
+	uint64_t batkrs = board & MoveTables::read_batk(sq, board);
+	batkrs &= my_board.bishop[is_white] | my_board.queen[is_white];
+
+	if (ratkrs | batkrs)
+		return 0;
+
+	return mask;
 }
 
 void ChessBoard::BoardRep::get_mv_mask(move_mask *mask, int sq)
@@ -84,8 +125,35 @@ void ChessBoard::BoardRep::get_mv_mask(move_mask *mask, int sq)
 	pin_adjust(sq, &(mask->push));
 	check_adjust(sq, &(mask->push));
 
-	mask->cap = 0;
-	mask->special = 0;
+	mask->cap = mask->push & my_board.color[!is_white];
+	mask->push ^= mask->cap;
+	mask->push &= ~my_board.color[is_white];
+	
+	// Handling special moves separately because they function differently
+	// as far as pins and checks are concerned.
+	//
+	// They also have to be made and unmade differently, so it's best
+	// to have them in their own section to save some computational power
+	// later.
+	mask->special = get_legal_castle_mask(sq, is_white);
+	
+	// Handle extra moves for pawn
+	if (manip & my_board.pawn[is_white])
+	{
+		mask->cap = atk_pawn(is_white, sq) & my_board.color[!is_white];
+
+		// This is a bit hacky, but should make fairly fast.
+		// It handles pins by assuming that the 
+		int dir = is_white ? -1 : 1;
+		if (!(1ULL << (sq + dir * 16) & my_board.occupied)
+				&& (1ULL << (sq + dir * 8) & mask->push))
+			mask->special = 1ULL << (sq + dir * 16);
+
+		mask->special |= get_legal_enp_mask(sq, is_white);
+	}
+
+	// DEBUG
+	debug_out << special_moves << std::endl;
 
 	// DEBUG?
 	update_pins_and_checks();
@@ -108,13 +176,12 @@ inline void ChessBoard::BoardRep::update_pins_and_checks(bool is_white)
 	uint64_t checkers;
 	uint64_t pinned = MoveTables::read_ratk(king_sq, board);
 	pinned |= MoveTables::read_batk(king_sq, board);
-	board ^= pinned & my_board.color[is_white];
 	checkers = pinned & my_board.color[!is_white];
 
 	// Handle Checks
-	uint64_t rchkrs = MoveTables::read_ratk(king_sq, checkers);
+	uint64_t rchkrs = MoveTables::read_ratk(king_sq, board);
 	rchkrs &= (my_board.queen[!is_white] ^ my_board.rook[!is_white]);
-	uint64_t bchkrs = MoveTables::read_batk(king_sq, checkers);
+	uint64_t bchkrs = MoveTables::read_batk(king_sq, board);
 	bchkrs &= (my_board.queen[!is_white] ^ my_board.bishop[!is_white]);
 	uint64_t nchkrs = MoveTables::read_natk(king_sq);
 	nchkrs &= my_board.knight[!is_white];
@@ -122,6 +189,7 @@ inline void ChessBoard::BoardRep::update_pins_and_checks(bool is_white)
 	this->checkers[is_white] = rchkrs | bchkrs | nchkrs;
 
 	// Hanlde Pins
+	board ^= pinned & my_board.color[is_white];
 	uint64_t ratkrs = MoveTables::read_ratk(king_sq, board);
 	ratkrs &= (my_board.queen[!is_white] ^ my_board.rook[!is_white]);
 	uint64_t batkrs = MoveTables::read_batk(king_sq, board);
@@ -132,7 +200,8 @@ inline void ChessBoard::BoardRep::update_pins_and_checks(bool is_white)
 
 	int i = 0;
 	while(ratkrs) {
-		int sq = MoveTables::pop_1st_bit(&ratkrs);
+		int sq = std::__countr_zero(ratkrs);
+		ratkrs ^= 1ULL << sq;
 		pins[is_white][i] = ChessBoard::Fields::tf_table[sq][king_sq];
 		pins[is_white][8] ^= pins[is_white][i];
 
@@ -140,7 +209,8 @@ inline void ChessBoard::BoardRep::update_pins_and_checks(bool is_white)
 	}
 
 	while(batkrs) {
-		int sq = MoveTables::pop_1st_bit(&batkrs);
+		int sq = std::__countr_zero(batkrs);
+		batkrs ^= 1ULL << sq;
 		pins[is_white][i] = ChessBoard::Fields::tf_table[sq][king_sq];
 		pins[is_white][8] ^= pins[is_white][i];
 
@@ -189,12 +259,8 @@ uint64_t ChessBoard::BoardRep::get_pseudo_moves(int sq)
 	if (mask & (~my_board.occupied))
 		return 0;
 
-	if (mask & my_board.pawn[color]) {
-		uint64_t output = 0;
-		output |= atk_pawn(color, sq);
-		output |= mv_pawn(color, sq);
-		return output;
-	}
+	if (mask & my_board.pawn[color])
+		return mv_pawn(color, sq);
 
 	if (mask & my_board.knight[color])
 		return atk_knight(sq);
@@ -371,6 +437,97 @@ inline uint64_t ChessBoard::BoardRep::atk_queen(int sq)
 inline uint64_t ChessBoard::BoardRep::atk_king(int sq)
 {
 	return MoveTables::read_katk(sq);
+}
+
+uint64_t ChessBoard::BoardRep::get_legal_castle_mask(int sq, bool is_white)
+{
+	uint64_t output = 0;
+	debug_out << (uint32_t)special_moves << ' ' << sq << std::endl;
+
+	// If we are on the king square AND have either of our casling rights
+	// Then we proceed to check for castles
+	if (!(sq == (is_white ? 60 : 4)
+		&& special_moves & (3 << (0 + (is_white ? 0 : 2)))))
+	{
+		debug_out << "Failed Initial Check\n";
+		return output;
+	}
+
+	// King side check
+	output |= can_ksk(is_white) * (is_white ? WHITE_KSK : BLACK_KSK);
+	debug_out << "CAN KSK\n";
+	
+	// Queen side check
+	output |= can_qsk(is_white) * (is_white ? WHITE_QSK : BLACK_QSK);
+
+	return output;
+}
+
+bool ChessBoard::BoardRep::can_ksk(bool is_white)
+{
+	int king_sq = is_white ? 60 : 4;
+
+	// Check rights
+	if (!(special_moves & (1 << (0 + (is_white ? 0 : 2)))))
+		return false;
+
+	// Check for moving through check.
+	for (int i = 0; i < 3; ++i)
+	{
+		if (is_threatened(king_sq + i))
+			return false;
+	}
+
+	if (Fields::tf_table[king_sq + 1][king_sq + 2] & my_board.occupied)
+		return false;
+	
+	return true;
+}
+
+bool ChessBoard::BoardRep::can_qsk(bool is_white)
+{
+	int king_sq = is_white ? 60 : 4;
+
+	// Check rights
+	if (!(special_moves & (2 << (0 + (is_white ? 0 : 2)))))
+		return false;
+
+	// Check for moving through check.
+	for (int i = 0; i < 3; ++i)
+	{
+		if (is_threatened(king_sq - i))
+			return false;
+	}
+
+	if (Fields::tf_table[king_sq - 1][king_sq - 3] & my_board.occupied)
+		return false;
+	
+	return true;
+}
+
+bool ChessBoard::BoardRep::is_threatened(int sq)
+{
+	bool is_white = 1ULL << sq & my_board.color[1];
+	return is_threatened(sq, is_white);
+}
+
+bool ChessBoard::BoardRep::is_threatened(int sq, bool is_white)
+{
+	if (my_board.knight[!is_white] & atk_knight(sq))
+		return true;
+
+	if ((my_board.rook[!is_white] | my_board.queen[!is_white])
+			& atk_rook(sq))
+		return true;
+
+	if ((my_board.bishop[!is_white] | my_board.queen[!is_white])
+			& atk_bishop(sq))
+		return true;
+
+	if (my_board.pawn[!is_white] & atk_pawn(is_white, sq))
+		return true;
+
+	return false;
 }
 
 // IMPROPPER FREEING OF THIS IS DONE LITERALLY EVERYWHERE
