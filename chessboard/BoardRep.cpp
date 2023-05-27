@@ -56,8 +56,11 @@ void ChessBoard::BoardRep::check_adjust(int sq, uint64_t *moves)
 
 void ChessBoard::BoardRep::check_adjust(int sq, uint64_t *moves, bool is_white)
 {
-	int num_checkers = std::__popcount(checkers[is_white]);
 	uint64_t curr_sq = 1ULL << sq;
+	if (my_board.king[is_white] & curr_sq)
+		return king_mv_adjust(sq, moves, is_white);
+
+	int num_checkers = std::__popcount(checkers[is_white]);
 
 	if (num_checkers == 0)
 		return;
@@ -81,10 +84,38 @@ void ChessBoard::BoardRep::check_adjust(int sq, uint64_t *moves, bool is_white)
 	U64_TO_BB(debug_out, blocks);
 	debug_out << std::endl << std::endl;
 
-	if (my_board.king[is_white] & curr_sq)
-		*moves &= ~blocks;
-	else
-		*moves &= blocks;
+	*moves &= blocks;
+}
+
+// TODO: MAKE THIS MORE EFFICIENT
+// I cannot think of a better way to do this at the moment, other than
+// an incrementally updated attack table.
+//
+// This also may be relavent, but I can't make heads or tails of it
+// https://www.chessprogramming.org/Kogge-Stone_Algorithm
+//
+// PS: Yeah... This is probably really slow...
+void ChessBoard::BoardRep::king_mv_adjust(int sq, uint64_t *moves, bool is_white)
+{
+	uint64_t to_parse = *moves;
+	uint64_t board = my_board.occupied & ~(1ULL << find_king(is_white));
+
+	while (to_parse)
+	{
+		int sq = std::__countr_zero(to_parse);
+		to_parse ^= 1ULL << sq;
+
+		uint64_t ratkrs = MoveTables::read_ratk(sq, board);
+		ratkrs &= my_board.queen[!is_white] | my_board.rook[!is_white];
+		uint64_t batkrs = MoveTables::read_batk(sq, board);
+		batkrs &= my_board.queen[!is_white] | my_board.bishop[!is_white];
+		uint64_t natkrs = MoveTables::read_natk(sq);
+		natkrs &= my_board.knight[!is_white];
+
+		if (ratkrs | batkrs | natkrs)
+			*moves ^= 1ULL << sq;
+	}
+		
 }
 
 uint64_t ChessBoard::BoardRep::get_legal_enp_mask(int sq, bool is_white)
@@ -145,8 +176,10 @@ void ChessBoard::BoardRep::get_mv_mask(move_mask *mask, int sq)
 		// This is a bit hacky, but should make fairly fast.
 		// It handles pins by assuming that the 
 		int dir = is_white ? -1 : 1;
+		int row = is_white ? 7 : 1;
 		if (!(1ULL << (sq + dir * 16) & my_board.occupied)
-				&& (1ULL << (sq + dir * 8) & mask->push))
+				&& (1ULL << (sq + dir * 8) & mask->push)
+				&& (sq / 8 == row)) 
 			mask->special = 1ULL << (sq + dir * 16);
 
 		mask->special |= get_legal_enp_mask(sq, is_white);
@@ -384,7 +417,7 @@ inline uint64_t ChessBoard::BoardRep::enp_wpawn(int sq)
 	if (enp_col == -1)
 		return 0;
 
-	if (sq < 32 || sq >= 40)
+	if (sq < 24 || sq >= 32)
 		return 0;
 
 	if (sq % 8 + 1 == enp_col)
@@ -401,7 +434,7 @@ inline uint64_t ChessBoard::BoardRep::enp_bpawn(int sq)
 	if (enp_col == -1)
 		return 0;
 
-	if (sq < 24 || sq >= 32)
+	if (sq < 32 || sq >= 40)
 		return 0;
 
 	if (sq % 8 + 1 == enp_col)

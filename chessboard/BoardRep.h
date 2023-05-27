@@ -63,6 +63,7 @@ private:
 	inline void pin_adjust(int sq, uint64_t *moves, bool is_white);
 	inline void check_adjust(int sq, uint64_t *moves);
 	inline void check_adjust(int sq, uint64_t *moves, bool is_white);
+	inline void king_mv_adjust(int sq, uint64_t *moves, bool is_white);
 	inline bool seen_by_king(int sq);
 	inline int find_king(bool is_white);
 
@@ -130,6 +131,9 @@ private:
 	// be checked first to see if the piece is actually pinned, then the
 	// actuall pinning ray can be found by searching from zero up.
 	uint64_t pins[2][9];
+	// Stores all of the squares that are currently threatened
+	// (e.g squares that the king cannot legally move to)
+	uint64_t atktab[2];
 
 	char *read_fen_main(char *start_char, int row = 0, int col = 0);
 	char *read_fen_castle(char *castle_str);
