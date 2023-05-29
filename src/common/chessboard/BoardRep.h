@@ -102,6 +102,10 @@ public:
 	void delete_piece(int sq);
 	void delete_piece(int sq, enum piece_id old_piece, bool was_white);
 
+	bool white_turn;
+	short halfmove_clock = 0;
+	short fullmove_number = 0;
+
 private:
 
 	inline void pin_adjust(int sq, uint64_t *moves);
@@ -187,9 +191,6 @@ private:
 	// be checked first to see if the piece is actually pinned, then the
 	// actuall pinning ray can be found by searching from zero up.
 	uint64_t pins[2][9];
-	bool white_turn;
-	short halfmove_clock = 0;
-	short fullmove_number = 0;
 
 	char *read_fen_main(char *start_char, int row = 0, int col = 0);
 	char *read_fen_castle(char *castle_str);
