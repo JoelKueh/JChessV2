@@ -43,6 +43,130 @@ ChessBoard::BoardRep::BoardRep()
 	update_pins_and_checks();
 }
 
+void ChessBoard::BoardRep::make_mv(move &my_move)
+{
+	special_moves.enp_availiable = false;
+	int offset = white_turn ? 0 : 2;
+
+	if (my_move.is_qsk) {
+		int king_start = white_turn ? 60 : 4;
+		int rook_start = king_start - 4;
+
+		int rook_end = king_start - 1;
+		int king_end = king_start - 2;
+
+		delete_piece(king_start, piece_id::king, white_turn);
+		delete_piece(king_start, piece_id::rook, white_turn);
+
+		write_piece(king_end, piece_id::king, white_turn);
+		write_piece(rook_end, piece_id::rook, white_turn);
+
+		special_moves.raw &= ~(3ULL << offset);
+		
+		white_turn = !white_turn;
+		return;
+	}
+
+	if (my_move.is_ksk) {
+		int king_start = white_turn ? 60 : 4;
+		int rook_start = king_start + 3;
+
+		int rook_end = king_start + 1;
+		int king_end = king_start + 2;
+
+		delete_piece(king_start, piece_id::king, white_turn);
+		delete_piece(king_start, piece_id::rook, white_turn);
+
+		write_piece(king_end, piece_id::king, white_turn);
+		write_piece(rook_end, piece_id::rook, white_turn);
+
+		special_moves.raw &= ~(3ULL << offset);
+
+		white_turn = !white_turn;
+		return;
+	}
+
+	delete_piece(my_move.to, my_move.cap_piece_id, !white_turn);
+	write_piece(my_move.to, my_move.move_piece_id, white_turn);
+	delete_piece(my_move.from, my_move.move_piece_id, white_turn);
+
+	if (my_move.enp_created) {
+		special_moves.enp_availiable = true;
+		special_moves.enp_col = my_move.enp_col;
+
+		white_turn = !white_turn;
+		return;
+	}
+
+	if (my_move.removes_ksk_right)
+		special_moves.raw &= ~(1ULL << offset);
+
+	if (my_move.removes_qsk_right)
+		special_moves.raw &= ~(1ULL << (1 + offset));
+
+	white_turn = !white_turn;
+}
+
+void ChessBoard::BoardRep::unmake_mv(move &my_move)
+{
+	white_turn = !white_turn;
+	int offset = white_turn ? 0 : 2;
+
+	if (my_move.is_ksk) {
+		int king_from = white_turn ? 60 : 4;
+		int rook_from = king_from + 3;
+
+		int king_to = king_from + 2;
+		int rook_to = king_from + 1;
+
+		delete_piece(king_to, piece_id::king, white_turn);
+		delete_piece(rook_to, piece_id::rook, white_turn);
+
+		write_piece(king_from, piece_id::king, white_turn);
+		write_piece(rook_from, piece_id::rook, white_turn);
+
+		return;
+	}
+
+	if (my_move.is_qsk) {
+		int king_from = white_turn ? 60 : 4;
+		int rook_from = king_from - 4;
+
+		int king_to = king_from - 2;
+		int rook_to = king_from - 1;
+
+		delete_piece(king_to, piece_id::king, white_turn);
+		delete_piece(rook_to, piece_id::rook, white_turn);
+		
+		write_piece(king_from, piece_id::king, white_turn);
+		write_piece(rook_from, piece_id::rook, white_turn);
+
+		return;
+	}
+
+	delete_piece(my_move.to, my_move.move_piece_id, white_turn);
+	write_piece(my_move.from, my_move.move_piece_id, white_turn); 
+	write_piece(my_move.to, my_move.move_piece_id, !white_turn);
+
+	if (my_move.enp_decayed) {
+		special_moves.enp_availiable = true;
+		special_moves.enp_col = my_move.enp_col;
+	}
+
+	if (my_move.enp_created) {
+		special_moves.enp_availiable = false;
+
+		white_turn = !white_turn;
+		return;
+	}
+
+	if (my_move.removes_ksk_right)
+		special_moves.raw |= 1ULL << offset;
+
+	if (my_move.removes_qsk_right)
+		special_moves.raw |= 1ULL << (offset + 1);
+}
+
 int ChessBoard::BoardRep::get_checks(bool is_white)
 {
 	return std::__popcount(checkers[is_white]);
@@ -761,8 +885,6 @@ void ChessBoard::BoardRep::write_piece(char piece, int square)
 		piece_board = &my_board.king[is_white];
 		color_board = &my_board.color[is_white];
 		break;
-	case ' ':
-
 	default:
 		piece_board = &my_board.pawn[is_white];
 		color_board = &my_board.color[is_white];
@@ -772,6 +894,29 @@ void ChessBoard::BoardRep::write_piece(char piece, int square)
 	(*piece_board) |= UINT64_C(1) << square;
 	(*color_board) |= UINT64_C(1) << square;
 	my_board.occupied |= UINT64_C(1) << square;
+}
+
+void ChessBoard::BoardRep::write_piece(int sq, enum piece_id piece,
+		bool is_white)
+{
+	switch (piece)
+	{
+		case piece_id::pawn:
+			my_board.pawn[is_white] |= 1ULL << sq;
+		case piece_id::knight:
+			my_board.knight[is_white] |= 1ULL << sq;
+		case piece_id::bishop:
+			my_board.bishop[is_white] |= 1ULL << sq;
+		case piece_id::rook:
+			my_board.rook[is_white] |= 1ULL << sq;
+		case piece_id::queen:
+			my_board.rook[is_white] |= 1ULL << sq;
+		case piece_id::king:
+			my_board.king[is_white] |= 1ULL << sq;
+	};
+
+	my_board.color[is_whtie] |= 1ULL << sq;
+	my_board.occupied |= 1ULL << sq;
 }
 
 void ChessBoard::BoardRep::delete_piece(int sq)
@@ -785,6 +930,31 @@ void ChessBoard::BoardRep::delete_piece(int sq)
 		my_board.king[i] &= ~(1ULL << sq);
 		my_board.color[i] &= ~(1ULL << sq);
 	}
+	my_board.occupied &= ~(1ULL << sq);
+}
+
+void ChessBoard::BoardRep::delete_piece(int sq, enum pice_id old_piece,
+		bool was_white)
+{
+	switch (old_piece)
+	{
+	case piece_id::pawn:
+		my_board.pawn[was_white] &= ~(1ULL << sq);
+		break;
+	case piece_id::knight:
+		my_board.knight[was_white] &= ~(1ULL << sq);
+		break;
+	case piece_id::bishop:
+		my_board.knight[was_white] &= ~(1ULL << sq);
+		break;
+	case piece_id::rook:
+		my_board.knight[was_white] &= ~(1ULL << sq);
+		break;
+	case piece_id::queen:
+		my_board.knight[was_white] &= ~(1ULL << sq);
+		break;
+	}
+	my_board.color[was_white] &= ~(1ULL << sq);
 	my_board.occupied &= ~(1ULL << sq);
 }
 
