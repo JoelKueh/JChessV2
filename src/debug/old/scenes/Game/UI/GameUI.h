@@ -4,15 +4,21 @@
 
 class GameUI
 {
-private:
-
 public:
 
-	enum state {
-		U_OK = 0,
-		U_WRITE = 1,
-		U_MOVE = 2,
-		U_UPDATE_MASK = 3,
+	union state {
+		uint16_t raw;
+		struct {
+			bool ok: 1;
+			bool write: 1;
+			bool do_redraw: 1;
+
+			bool cursor_moved: 1;
+			bool update_mask: 1;
+
+			bool mk_move: 1;
+			bool unmk_move: 1;
+		};
 	};
 
 	struct write {
@@ -26,11 +32,10 @@ public:
 	};
 
 	write write_buf;
-	move move_buf;
 
 	GameUI();
 	virtual void init_ui() = 0;
-	virtual int update_ui() = 0;
+	virtual state update_ui() = 0;
 	virtual void update_pieces(char board[8][8]) = 0;
 	virtual int get_selected_piece() = 0;
 	virtual void set_push_mask(uint64_t mask) = 0;
@@ -39,4 +44,10 @@ public:
 	virtual void redraw_pieces() = 0;
 	virtual void update_time(int new_time, bool white) = 0;
 	virtual ~GameUI() = 0;
+
+	move read_move_buf();
+	void reset_move_buf();
+
+protected:
+	move move_buf;
 };

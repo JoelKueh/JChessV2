@@ -43,6 +43,73 @@ ChessBoard::BoardRep::BoardRep()
 	update_pins_and_checks();
 }
 
+ChessBoard::BoardRep::move ChessBoard::BoardRep::format_mv(int to, int from)
+{
+	move output;
+	output.raw = 0;
+
+	move_mask mask;
+	get_mv_mask(&mask, from);
+
+	uint64_t manip = 1ULL << to;
+
+	if (special_moves.enp_availiable)
+		output.enp_decayed = true;
+
+	if (mask.push & manip) {
+		output.valid = true;
+		output.from = from;
+		output.to = to;
+		output.move_piece_id = square_to_piece_id(from);
+
+		return output;
+	}
+
+	if (mask.cap & manip) {
+		output.valid = true;
+		output.from = from;
+		output.to = to;
+		output.move_piece_id = square_to_piece_id(from);
+		output.cap_piece_id = square_to_piece_id(to);
+
+		return output;
+	}
+
+	if (mask.special & manip) {
+		output.valid = true;
+		
+		int row_to = to / 8;
+		int row_from = from / 8;
+		if (row_to == 3 || row_to == 4) {
+			output.enp_created = true;
+			output.enp_col = to % 8;
+
+			output.to = to;
+			output.from = from;
+
+			return output;
+		}
+
+		if (to == 6 || to == 62) {
+			output.is_ksk = true; 
+
+			return output;
+		}
+
+		if (to == 2 || to == 58) {
+			output.is_qsk = true;
+
+			return output;
+		}
+
+		output.is_enp = true;
+		output.to = to;
+		output.from = from;
+	}
+
+	return output;
+}		
+
 void ChessBoard::BoardRep::make_mv(move &my_move)
 {
 	special_moves.enp_availiable = false;
@@ -61,6 +128,7 @@ void ChessBoard::BoardRep::make_mv(move &my_move)
 		write_piece(king_end, piece_id::king, white_turn);
 		write_piece(rook_end, piece_id::rook, white_turn);
 
+		// Get rid of all castle rights for one player.
 		special_moves.raw &= ~(3ULL << offset);
 		
 		white_turn = !white_turn;
@@ -80,7 +148,19 @@ void ChessBoard::BoardRep::make_mv(move &my_move)
 		write_piece(king_end, piece_id::king, white_turn);
 		write_piece(rook_end, piece_id::rook, white_turn);
 
+		// Get red of all castle rights for one player.
 		special_moves.raw &= ~(3ULL << offset);
+
+		white_turn = !white_turn;
+		return;
+	}
+
+	if (my_move.is_enp) {
+		write_piece(my_move.to, piece_id::pawn, white_turn);
+		delete_piece(my_move.from, piece_id::pawn, white_turn);
+
+		int direction = white_turn ? -8 : 8;
+		delete_piece(my_move.to + direction, piece_id::pawn, !white_turn);
 
 		white_turn = !white_turn;
 		return;
@@ -729,6 +809,37 @@ char ChessBoard::BoardRep::square_to_char(int square)
 
 	if (my_board.king[is_white] & manip)
 		return up_if_white('k', is_white);
+
+	return ' ';
+}
+
+ChessBoard::BoardRep::piece_id ChessBoard::BoardRep::square_to_piece_id(int sq)
+{
+	uint64_t manip = UINT64_C(1) << square;
+
+	if ((my_board.occupied & manip) == 0)
+		return piece_id::empty; 
+
+	// If there is a white piece on square, then is_white is true, else it is false.
+	bool is_white = my_board.color[1] & manip;
+
+	if (my_board.pawn[is_white] & manip)
+		return piece_id::pawn;
+
+	if (my_board.knight[is_white] & manip)
+		return piece_id::knight;
+
+	if (my_board.bishop[is_white] & manip)
+		return piece_id::bishop;
+
+	if (my_board.rook[is_white] & manip)
+		return piece_id::rook;
+	
+	if (my_board.queen[is_white] & manip)
+		return piece_id::queen;
+
+	if (my_board.king[is_white] & manip)
+		return piece_id::king;
 
 	return ' ';
 }

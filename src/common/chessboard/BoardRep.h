@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include <cstdint>
 #include <string>
 #include <bit>
@@ -51,6 +52,8 @@ public:
 	union move {
 		uint32_t raw;
 		struct {
+			bool valid: 1;
+
 			int to: 6;
 			int from: 6; // Self explanitory
 
@@ -78,6 +81,7 @@ public:
 
 	void board_to_strarr(char brdstr[8][8]);
 	char square_to_char(int square);
+	piece_id square_to_piece_id(int sq);
 	char up_if_white(char piece, bool is_white);
 
 	void wipe_board();
@@ -88,12 +92,15 @@ public:
 	uint64_t get_legal_moves(int sq);
 	uint64_t get_pseudo_moves(int sq);
 	void get_mv_mask(move_mask *mask, int sq);
+	char get_piece(int sq);
 
 	void update_pins_and_checks();
 	void update_pins_and_checks(bool is_white);
 
 	void make_mv(move &my_move);
 	void unmake_mv(move &my_move);
+
+	move format_mv(int to, int from);
 
 	// DEBUG: THIS SHOULD BE MADE PRIVATE
 	// WARNING: DOES NOT DELETE THE PIECE ON THE SQUARE TO BE WRITTEN TO!!!
@@ -107,6 +114,7 @@ public:
 	short fullmove_number = 0;
 
 private:
+
 
 	inline void pin_adjust(int sq, uint64_t *moves);
 	inline void pin_adjust(int sq, uint64_t *moves, bool is_white);
@@ -191,6 +199,8 @@ private:
 	// be checked first to see if the piece is actually pinned, then the
 	// actuall pinning ray can be found by searching from zero up.
 	uint64_t pins[2][9];
+	// The sequence of moves that it took to get to the current position
+	std::vector<move> move_list;
 
 	char *read_fen_main(char *start_char, int row = 0, int col = 0);
 	char *read_fen_castle(char *castle_str);

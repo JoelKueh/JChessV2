@@ -32,9 +32,9 @@ int Game::update()
 {
 	// Handle general updates to the UI.
 	refresh();
-	int state = UI->update_ui();
+	GameUI::state ui_state = UI->update_ui();
 
-	if (state == GameUI::state::U_WRITE) {
+	if (ui_state.write) {
 		if (UI->write_buf.piece == ' ') {
 			board->delete_piece(UI->write_buf.sq);
 		} else {
@@ -45,9 +45,8 @@ int Game::update()
 		UI->update_pieces(board_str);
 	}
 
-	// TODO: REFACTOR THIS
-	int selected = UI->get_selected_piece();
-	if (selected != last_selected_piece) {
+	if (ui_state.update_mask) {
+		int selected = UI->get_selected_piece();
 		ChessBoard::BoardRep::move_mask moves;
 		board->get_mv_mask(&moves, selected);
 		UI->set_push_mask(moves.push);
@@ -56,6 +55,9 @@ int Game::update()
 		UI->redraw_pieces();
 		last_selected_piece = selected;
 	}
+
+	if (ui_state.mk_move) {
+		
 
 	// Handle updates to the time counts for each player.
 	update_player_time();

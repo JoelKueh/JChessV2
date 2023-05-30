@@ -15,16 +15,11 @@ NCurses
 1. This library is included with most systems out of the box.
 2. If not, it is likely packaged.
 
-Bear
-====
-
-1. This is not required, but my make-compile-commands script uses it to
-   generate the proper configuration file for clangd.
-2. Once again, it is likely packaged with whatever distro you are using.
-
 Building
 ========
 
-Hopefully the build script that is in the root directory just works after the
-dependencies are installed. If it doesn't, I wouldn't be supprised because
-I don't really know what I'm doing.
+Running :code:`cmake ..` in the build directory will generate the required
+build files.
+
+After this, running :code:`cmake --build .` will build the executables and put
+them in build/bin
