@@ -815,7 +815,7 @@ char ChessBoard::BoardRep::square_to_char(int square)
 
 ChessBoard::BoardRep::piece_id ChessBoard::BoardRep::square_to_piece_id(int sq)
 {
-	uint64_t manip = UINT64_C(1) << square;
+	uint64_t manip = UINT64_C(1) << sq;
 
 	if ((my_board.occupied & manip) == 0)
 		return piece_id::empty; 
@@ -841,7 +841,7 @@ ChessBoard::BoardRep::piece_id ChessBoard::BoardRep::square_to_piece_id(int sq)
 	if (my_board.king[is_white] & manip)
 		return piece_id::king;
 
-	return ' ';
+	return piece_id::empty; 
 }
 
 char ChessBoard::BoardRep::up_if_white(char piece, bool is_white)

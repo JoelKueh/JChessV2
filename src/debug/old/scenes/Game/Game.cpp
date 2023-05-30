@@ -57,7 +57,14 @@ int Game::update()
 	}
 
 	if (ui_state.mk_move) {
-		
+		GameUI::move move = UI->read_move_buf();
+		ChessBoard::BoardRep::move move_full =
+			board->format_mv(move.start_sq, move.end_sq);
+
+		if (move_full.valid) {
+			board->make_mv(move_full);
+		}
+	}	
 
 	// Handle updates to the time counts for each player.
 	update_player_time();

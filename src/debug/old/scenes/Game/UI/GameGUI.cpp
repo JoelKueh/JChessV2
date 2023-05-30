@@ -10,9 +10,12 @@ void GameGUI::init_ui()
 
 }
 
-int GameGUI::update_ui()
+GameUI::state GameGUI::update_ui()
 {
-	return U_OK;
+	state ui_state;
+	ui_state.raw = 0;
+
+	return ui_state;
 }
 
 int GameGUI::get_selected_piece()
