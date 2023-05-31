@@ -1,6 +1,7 @@
 1. Official debug system.
 
-2. Work on Game Scene.
-   - Think about server architecture and code organization / CMake setup.
+2. Client Setup
 
-3. Client-Server Architecture.
+3. Server Setup
+
+4. Incrementally Updated Attack Tables
