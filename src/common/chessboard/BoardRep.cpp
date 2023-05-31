@@ -87,6 +87,8 @@ ChessBoard::BoardRep::move ChessBoard::BoardRep::format_mv(int to, int from)
 			output.to = to;
 			output.from = from;
 
+			output.move_piece_id = piece_id::pawn;
+
 			return output;
 		}
 
@@ -352,6 +354,13 @@ void ChessBoard::BoardRep::get_mv_mask(move_mask *mask, int sq)
 {
 	uint64_t manip = 1ULL << sq;
 	bool is_white = manip & my_board.color[1];
+
+	mask->push = 0;
+	mask->cap = 0;
+	mask->special = 0;
+
+	if (is_white != white_turn)
+		return;
 
 	// Pseudo Moves contains both push and cap masks, the push mask
 	// will be manipulated and then AND'ed with the color boards to
@@ -1073,6 +1082,9 @@ void ChessBoard::BoardRep::delete_piece(int sq, enum piece_id old_piece,
 		break;
 	case piece_id::queen:
 		my_board.knight[was_white] &= ~(1ULL << sq);
+		break;
+	case piece_id::empty:
+	case piece_id::king:
 		break;
 	}
 	my_board.color[was_white] &= ~(1ULL << sq);

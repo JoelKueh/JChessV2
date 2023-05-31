@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <ncurses.h>
 
 class GameUI
@@ -27,8 +28,8 @@ public:
 	};
 
 	struct move {
-		int start_sq;
-		int end_sq;
+		unsigned int start_sq;
+		unsigned int end_sq;
 	};
 
 	write write_buf;

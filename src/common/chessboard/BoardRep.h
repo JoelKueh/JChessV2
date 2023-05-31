@@ -54,8 +54,8 @@ public:
 		struct {
 			bool valid: 1;
 
-			int to: 6;
-			int from: 6; // Self explanitory
+			unsigned int to: 6;
+			unsigned int from: 6; // Self explanitory
 
 			bool is_qsk: 1;
 			bool is_ksk: 1; // Queen and kingside catle flags
@@ -68,7 +68,7 @@ public:
 			bool enp_decayed: 1; // Did an enpassant decay this move
 			
 			bool enp_created: 1;
-			int enp_col: 3; // Which column is the enpassant in
+			unsigned int enp_col: 3; // Which column is the enpassant in
 			
 			// Whether or not the move removed the casltling right
 			// for a particular piece.
@@ -190,7 +190,7 @@ private:
 			bool black_qsk : 1;
 
 			bool enp_availiable : 1;
-			int enp_col : 3;
+			unsigned int enp_col : 3;
 		};
 	} special_moves;
 	// Stores all of the rays that contain pinned pieces. Slot 8

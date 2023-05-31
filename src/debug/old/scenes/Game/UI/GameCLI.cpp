@@ -11,6 +11,9 @@ GameCLI::GameCLI()
   	init_input_win();
 	refresh();
 
+	move_buf.start_sq = -1;
+	move_buf.end_sq = -1;
+
 	// TODO: MOVE THIS
 	init_ui();
 }
@@ -36,6 +39,7 @@ void GameCLI::init_ui()
 GameCLI::state GameCLI::update_ui()
 {
 	state ui_state;
+	ui_state.raw = 0;
 	ui_state.ok = true;
 
 	int input = wgetch(board_win);
@@ -65,6 +69,8 @@ GameCLI::state GameCLI::update_ui()
 		ui_state.cursor_moved = true;
 		break;
 	case KEY_ENTER:
+	case 'z':
+	case 'Z':
 		if (move_buf.start_sq == -1) {
 			move_buf.start_sq = cursor_row * 8 + cursor_col;
 			break;
@@ -99,7 +105,7 @@ GameCLI::state GameCLI::update_ui()
 	if (move_buf.start_sq == -1 && ui_state.cursor_moved)
 		ui_state.update_mask = true;
 
-	if (move_buf.start_sq != -1 && move_buf.start_sq != -1)
+	if (move_buf.start_sq != -1 && move_buf.end_sq != -1)
 		ui_state.mk_move = true;
 
 	if (ui_state.do_redraw) {
