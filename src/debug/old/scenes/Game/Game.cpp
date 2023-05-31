@@ -80,6 +80,23 @@ int Game::update()
 		}
 	}	
 
+	if (ui_state.unmk_move) {
+		board->unmake_mv();
+
+		char board_str[8][8];
+		board->board_to_strarr(board_str);
+		UI->update_pieces(board_str);
+
+		int selected = UI->get_selected_piece();
+		ChessBoard::BoardRep::move_mask moves;
+		board->get_mv_mask(&moves, selected);
+		UI->set_push_mask(moves.push);
+		UI->set_cap_mask(moves.cap);
+		UI->set_special_mask(moves.special);
+		UI->redraw_pieces();
+	}
+
+
 	// Handle updates to the time counts for each player.
 	update_player_time();
 

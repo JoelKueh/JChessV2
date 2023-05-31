@@ -66,9 +66,10 @@ public:
 			// The id of the piece that previously occupied the square
 
 			bool enp_decayed: 1; // Did an enpassant decay this move
+			unsigned int enp_decayed_col: 3;
 			
 			bool enp_created: 1;
-			unsigned int enp_col: 3; // Which column is the enpassant in
+			unsigned int enp_created_col: 3; // Which column is the enpassant in
 			
 			// Whether or not the move removed the casltling right
 			// for a particular piece.
@@ -98,7 +99,7 @@ public:
 	void update_pins_and_checks(bool is_white);
 
 	void make_mv(move &my_move);
-	void unmake_mv(move &my_move);
+	void unmake_mv();
 
 	move format_mv(int to, int from);
 
