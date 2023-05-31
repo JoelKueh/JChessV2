@@ -125,7 +125,7 @@ void ChessBoard::BoardRep::make_mv(move &my_move)
 		int king_end = king_start - 2;
 
 		delete_piece(king_start, piece_id::king, white_turn);
-		delete_piece(king_start, piece_id::rook, white_turn);
+		delete_piece(rook_start, piece_id::rook, white_turn);
 
 		write_piece(king_end, piece_id::king, white_turn);
 		write_piece(rook_end, piece_id::rook, white_turn);
@@ -145,7 +145,7 @@ void ChessBoard::BoardRep::make_mv(move &my_move)
 		int king_end = king_start + 2;
 
 		delete_piece(king_start, piece_id::king, white_turn);
-		delete_piece(king_start, piece_id::rook, white_turn);
+		delete_piece(rook_start, piece_id::rook, white_turn);
 
 		write_piece(king_end, piece_id::king, white_turn);
 		write_piece(rook_end, piece_id::rook, white_turn);
@@ -161,7 +161,7 @@ void ChessBoard::BoardRep::make_mv(move &my_move)
 		write_piece(my_move.to, piece_id::pawn, white_turn);
 		delete_piece(my_move.from, piece_id::pawn, white_turn);
 
-		int direction = white_turn ? -8 : 8;
+		int direction = white_turn ? 8 : -8;
 		delete_piece(my_move.to + direction, piece_id::pawn, !white_turn);
 
 		white_turn = !white_turn;
@@ -305,23 +305,41 @@ void ChessBoard::BoardRep::king_mv_adjust(int sq, uint64_t *moves, bool is_white
 {
 	uint64_t to_parse = *moves;
 	uint64_t board = my_board.occupied & ~(1ULL << find_king(is_white));
+	to_parse &= ~board;
+	*moves &= ~board;
 
 	while (to_parse)
 	{
 		int sq = std::__countr_zero(to_parse);
 		to_parse ^= 1ULL << sq;
 
-		uint64_t ratkrs = MoveTables::read_ratk(sq, board);
-		ratkrs &= my_board.queen[!is_white] | my_board.rook[!is_white];
-		uint64_t batkrs = MoveTables::read_batk(sq, board);
-		batkrs &= my_board.queen[!is_white] | my_board.bishop[!is_white];
-		uint64_t natkrs = MoveTables::read_natk(sq);
-		natkrs &= my_board.knight[!is_white];
-
-		if (ratkrs | batkrs | natkrs)
+		if (my_board.knight[!is_white] & atk_knight(sq)) {
 			*moves ^= 1ULL << sq;
+			continue;
+		}
+
+		if ((my_board.rook[!is_white] | my_board.queen[!is_white])
+				& MoveTables::read_ratk(sq, board)) {
+			*moves ^= 1ULL << sq;
+			continue;
+		}
+
+		if ((my_board.bishop[!is_white] | my_board.queen[!is_white])
+				& MoveTables::read_batk(sq, board)) {
+			*moves ^= 1ULL << sq;
+			continue;
+		}
+
+		if (my_board.pawn[!is_white] & atk_pawn(is_white, sq)) {
+			*moves ^= 1ULL << sq;
+			continue;
+		}
+
+		if (my_board.king[!is_white] & atk_king(sq)) {
+			*moves ^= 1ULL << sq;
+			continue;
+		}
 	}
-		
 }
 
 uint64_t ChessBoard::BoardRep::get_legal_enp_mask(int sq, bool is_white)
@@ -628,7 +646,7 @@ inline uint64_t ChessBoard::BoardRep::enp_pawn(bool color, int sq)
 
 inline uint64_t ChessBoard::BoardRep::enp_wpawn(int sq)
 {
-	if (special_moves.enp_availiable)
+	if (!special_moves.enp_availiable)
 		return 0;
 
 	if (sq < 24 || sq >= 32)
@@ -644,7 +662,7 @@ inline uint64_t ChessBoard::BoardRep::enp_wpawn(int sq)
 
 inline uint64_t ChessBoard::BoardRep::enp_bpawn(int sq)
 {
-	if (special_moves.enp_availiable)
+	if (!special_moves.enp_availiable)
 		return 0;
 
 	if (sq < 32 || sq >= 40)
@@ -722,7 +740,7 @@ bool ChessBoard::BoardRep::can_ksk(bool is_white)
 	// Check for moving through check.
 	for (int i = 0; i < 3; ++i)
 	{
-		if (is_threatened(king_sq + i))
+		if (is_threatened(king_sq + i, is_white))
 			return false;
 	}
 
@@ -743,7 +761,7 @@ bool ChessBoard::BoardRep::can_qsk(bool is_white)
 	// Check for moving through check.
 	for (int i = 0; i < 3; ++i)
 	{
-		if (is_threatened(king_sq - i))
+		if (is_threatened(king_sq - i, is_white))
 			return false;
 	}
 
@@ -773,6 +791,9 @@ bool ChessBoard::BoardRep::is_threatened(int sq, bool is_white)
 		return true;
 
 	if (my_board.pawn[!is_white] & atk_pawn(is_white, sq))
+		return true;
+
+	if (my_board.king[!is_white] & atk_king(sq))
 		return true;
 
 	return false;
@@ -1035,7 +1056,7 @@ void ChessBoard::BoardRep::write_piece(int sq, enum piece_id piece,
 			my_board.rook[is_white] |= 1ULL << sq;
 			break;
 		case piece_id::queen:
-			my_board.rook[is_white] |= 1ULL << sq;
+			my_board.queen[is_white] |= 1ULL << sq;
 			break;
 		case piece_id::king:
 			my_board.king[is_white] |= 1ULL << sq;
@@ -1075,17 +1096,19 @@ void ChessBoard::BoardRep::delete_piece(int sq, enum piece_id old_piece,
 		my_board.knight[was_white] &= ~(1ULL << sq);
 		break;
 	case piece_id::bishop:
-		my_board.knight[was_white] &= ~(1ULL << sq);
+		my_board.bishop[was_white] &= ~(1ULL << sq);
 		break;
 	case piece_id::rook:
-		my_board.knight[was_white] &= ~(1ULL << sq);
+		my_board.rook[was_white] &= ~(1ULL << sq);
 		break;
 	case piece_id::queen:
-		my_board.knight[was_white] &= ~(1ULL << sq);
+		my_board.queen[was_white] &= ~(1ULL << sq);
+		break;
+	case piece_id::king:
+		my_board.king[was_white] &= ~(1ULL << sq);
 		break;
 	case piece_id::empty:
-	case piece_id::king:
-		break;
+		return;
 	}
 	my_board.color[was_white] &= ~(1ULL << sq);
 	my_board.occupied &= ~(1ULL << sq);
