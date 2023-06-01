@@ -86,7 +86,7 @@ public:
 	char up_if_white(char piece, bool is_white);
 
 	void wipe_board();
-	void fen_to_board(char *fen_str);
+	void fen_to_board(const char *fen_str);
 
 	int get_board_state();
 	int get_checks(bool is_white);
@@ -94,7 +94,9 @@ public:
 	uint64_t get_pseudo_moves(int sq);
 	void get_mv_mask(move_mask *mask, int sq);
 	char get_piece(int sq);
-	void gen_move_list(std::vector<move> &move_list);
+	void gen_move_list(move move_list[218]); // 218 because it appears
+						// to be the max number of
+						// moves at any position.
 
 	void update_pins_and_checks();
 	void update_pins_and_checks(bool is_white);
@@ -204,9 +206,9 @@ private:
 	// The sequence of moves that it took to get to the current position
 	std::vector<move> move_history;
 
-	char *read_fen_main(char *start_char, int row = 0, int col = 0);
-	char *read_fen_castle(char *castle_str);
-	char *read_fen_enp(char *enp_str);
+	const char *read_fen_main(const char *start_char, int row = 0, int col = 0);
+	const char *read_fen_castle(const char *castle_str);
+	const char *read_fen_enp(const char *enp_str);
 
 	inline void set_enp(int col);
 	/**

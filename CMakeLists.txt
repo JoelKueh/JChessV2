@@ -44,6 +44,10 @@ add_executable(old_debug src/debug/old/JChessV2.cpp
 	src/debug/old/scenes/StartMenu/StartGUI.cpp)
 target_link_libraries(old_debug chessboard ${NCURSES_LIBRARIES} glfw)
 
+# Build Perft
+add_executable(perft src/debug/perft/perft.cpp)
+target_link_libraries(perft chessboard)
+
 # Set output path
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/lib)

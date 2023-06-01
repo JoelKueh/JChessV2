@@ -45,10 +45,17 @@ ChessBoard::BoardRep::BoardRep()
 // TODO: There are some redundant checks here due to the fact that we generate
 // the moves and then use format_mv to turn them into real moves. Shouldn't be
 // too bad, but can be improved.
-void ChessBoard::BoardRep::gen_move_list(std::vector<move> &move_list)
+//
+// The move is an array of 218 elements because it appears that the maximum
+// number of moves in any position is 218
+//
+// The last element in the move list will have its valid bit set to false
+// so the engine knows not to execute it.
+void ChessBoard::BoardRep::gen_move_list(move move_list[218])
 {
 	uint64_t movers = my_board.color[white_turn];
 
+	int i = 0;
 	while (movers) {
 		int from = std::__countr_zero(movers);
 		movers ^= 1ULL << from;
@@ -60,21 +67,24 @@ void ChessBoard::BoardRep::gen_move_list(std::vector<move> &move_list)
 			int to = std::__countr_zero(mask.push);
 			mask.push ^= 1ULL << to;
 
-			move_list.push_back(format_mv(to, from));
+			move_list[i] = format_mv(to, from);
+			++i;
 		}
 
 		while (mask.cap) {
 			int to = std::__countr_zero(mask.cap);
 			mask.cap ^= 1ULL << to;
 
-			move_list.push_back(format_mv(to, from));
+			move_list[i] = format_mv(to, from);
+			++i;
 		}
 
 		while (mask.special) {
 			int to = std::__countr_zero(mask.special);
 			mask.special ^= 1ULL << to;
 			
-			move_list.push_back(format_mv(to, from));
+			move_list[i] = format_mv(to, from);
+			++i;
 		}
 	}
 }
@@ -940,11 +950,11 @@ char ChessBoard::BoardRep::up_if_white(char piece, bool is_white)
 	return piece;
 }
 
-void ChessBoard::BoardRep::fen_to_board(char *fen_str)
+void ChessBoard::BoardRep::fen_to_board(const char *fen_str)
 {
 	wipe_board();
 
-	char *char_pos;
+	const char *char_pos;
 	char_pos = read_fen_main(fen_str);
 	
 	white_turn = false;
@@ -985,9 +995,9 @@ void ChessBoard::BoardRep::wipe_board()
 	special_moves.raw = 0;
 }
 
-char *ChessBoard::BoardRep::read_fen_main(char *char_pos, int row, int col)
+const char *ChessBoard::BoardRep::read_fen_main(const char *char_pos, int row, int col)
 {
-	char this_char = *char_pos;
+	const char this_char = *char_pos;
 	if (isdigit(this_char))
 	{
 		col += this_char - '0';
@@ -1010,7 +1020,7 @@ char *ChessBoard::BoardRep::read_fen_main(char *char_pos, int row, int col)
 	return read_fen_main(char_pos + 1, row, col);
 }
 
-char *ChessBoard::BoardRep::read_fen_castle(char *castle_str)
+const char *ChessBoard::BoardRep::read_fen_castle(const char *castle_str)
 {
 	switch (*castle_str)
 	{
@@ -1025,7 +1035,7 @@ char *ChessBoard::BoardRep::read_fen_castle(char *castle_str)
 	return read_fen_castle(castle_str + 1);
 }
 
-char *ChessBoard::BoardRep::read_fen_enp(char *enp_str)
+const char *ChessBoard::BoardRep::read_fen_enp(const char *enp_str)
 {
 	if (*enp_str == '-')
 	{
