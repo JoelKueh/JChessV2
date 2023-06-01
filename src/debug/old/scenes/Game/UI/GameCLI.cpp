@@ -11,6 +11,9 @@ GameCLI::GameCLI()
   	init_input_win();
 	refresh();
 
+	move_buf.start_sq = -1;
+	move_buf.end_sq = -1;
+
 	// TODO: MOVE THIS
 	init_ui();
 }
@@ -33,32 +36,50 @@ void GameCLI::init_ui()
 	init_pair(SPECIAL_INV, SPECIAL_COLOR, -1);
 }
 
-int GameCLI::update_ui()
+GameCLI::state GameCLI::update_ui()
 {
-	int state = U_OK;
+	state ui_state;
+	ui_state.raw = 0;
+	ui_state.ok = true;
 
-	bool do_redraw = false;
 	int input = wgetch(board_win);
 	switch (input) {
 	case KEY_DOWN:
 		cursor_row += 1;
 		cursor_row = cursor_row > 7 ? 7 : cursor_row;
-		do_redraw = true;
+		ui_state.do_redraw = true;
+		ui_state.cursor_moved = true;
 		break;
 	case KEY_UP:
 		cursor_row -= 1;
 		cursor_row = cursor_row < 0 ? 0 : cursor_row;
-		do_redraw = true;
+		ui_state.do_redraw = true;
+		ui_state.cursor_moved = true;
 		break;
 	case KEY_RIGHT:
 		cursor_col += 1;
 		cursor_col = cursor_col > 7 ? 7 : cursor_col;
-		do_redraw = true;
+		ui_state.do_redraw = true;
+		ui_state.cursor_moved = true;
 		break;
 	case KEY_LEFT:
 		cursor_col -= 1;
 		cursor_col = cursor_col < 0 ? 0 : cursor_col;
-		do_redraw = true;
+		ui_state.do_redraw = true;
+		ui_state.cursor_moved = true;
+		break;
+	case KEY_ENTER:
+	case 'z':
+	case 'Z':
+		if (move_buf.start_sq == -1) {
+			move_buf.start_sq = cursor_row * 8 + cursor_col;
+			break;
+		}
+		move_buf.end_sq = cursor_row * 8 + cursor_col;
+		break;
+	case 'u':
+	case 'U':
+		ui_state.unmk_move = true;
 		break;
 	case ' ':
 	case 'P':
@@ -73,20 +94,25 @@ int GameCLI::update_ui()
 	case 'q':
 	case 'K':
 	case 'k':
-		state = U_WRITE;
+		ui_state.write = true;
 		write_buf.piece = input;
 		write_buf.sq = cursor_row * 8 + cursor_col;
 		break;
 	defualt:
-		do_redraw = false;
 		break;
 	}
 
-	if (do_redraw) {
+	if (move_buf.start_sq == -1 && ui_state.cursor_moved)
+		ui_state.update_mask = true;
+
+	if (move_buf.start_sq != -1 && move_buf.end_sq != -1)
+		ui_state.mk_move = true;
+
+	if (ui_state.do_redraw) {
 		redraw_pieces();
 	}
 
-	return state;
+	return ui_state;
 }
 
 void GameCLI::update_pieces(char board[8][8])

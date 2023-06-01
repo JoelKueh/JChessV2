@@ -47,7 +47,7 @@ private:
 public:
 	GameCLI();
 	virtual void init_ui();
-	virtual int update_ui();
+	virtual state update_ui();
 	virtual int get_selected_piece();
 	virtual void set_push_mask(uint64_t mask);
 	virtual void set_cap_mask(uint64_t mask);

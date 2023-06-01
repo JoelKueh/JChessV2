@@ -4,6 +4,9 @@ cmake_minimum_required(VERSION 3.10)
 # Set project name
 project(JChess VERSION 2.0)
 
+# Compile Flags
+set(CMAKE_BUILD_TYPE Debug)
+
 # Ncurses stuff
 set(CURSES_NEED_NCURSES TRUE)
 set(CURSES_NEED_WIDE TRUE)
