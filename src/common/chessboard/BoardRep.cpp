@@ -2,32 +2,6 @@
 #include "move_gen/magics.h"
 #include "tf_table.h"
 
-// DEBUG
-#include <fstream>
-extern std::ofstream debug_out;
-
-#define BYTE_TO_BINARY(byte)  \
-  (byte & 0x01 ? '1' : '0') << \
-  (byte & 0x02 ? '1' : '0') << \
-  (byte & 0x04 ? '1' : '0') << \
-  (byte & 0x08 ? '1' : '0') << \
-  (byte & 0x10 ? '1' : '0') << \
-  (byte & 0x20 ? '1' : '0') << \
-  (byte & 0x40 ? '1' : '0') << \
-  (byte & 0x80 ? '1' : '0')
-
-
-#define U64_TO_BB(file, u64)  \
-  file << BYTE_TO_BINARY(u64) << std::endl \
-	<< BYTE_TO_BINARY(u64 >> 8) << std::endl \
-  	<< BYTE_TO_BINARY(u64 >> 16) << std::endl \
-	<< BYTE_TO_BINARY(u64 >> 24) << std::endl \
-  	<< BYTE_TO_BINARY(u64 >> 32) << std::endl \
-  	<< BYTE_TO_BINARY(u64 >> 40) << std::endl \
-  	<< BYTE_TO_BINARY(u64 >> 48) << std::endl \
-    << BYTE_TO_BINARY(u64 >> 56) << std::endl << std::endl \
-/////////////////////////////
-
 ChessBoard::BoardRep::BoardRep()
 {
 	MoveTables::gen_move_tables();
@@ -183,6 +157,7 @@ void ChessBoard::BoardRep::make_mv(move &my_move)
 		// Get rid of all castle rights for one player.
 		special_moves.raw &= ~(3ULL << offset);
 		
+		update_pins_and_checks();
 		white_turn = !white_turn;
 		return;
 	}
@@ -203,6 +178,7 @@ void ChessBoard::BoardRep::make_mv(move &my_move)
 		// Get red of all castle rights for one player.
 		special_moves.raw &= ~(3ULL << offset);
 
+		update_pins_and_checks();
 		white_turn = !white_turn;
 		return;
 	}
@@ -214,6 +190,7 @@ void ChessBoard::BoardRep::make_mv(move &my_move)
 		int direction = white_turn ? 8 : -8;
 		delete_piece(my_move.to + direction, piece_id::pawn, !white_turn);
 
+		update_pins_and_checks();
 		white_turn = !white_turn;
 		return;
 	}
@@ -227,6 +204,7 @@ void ChessBoard::BoardRep::make_mv(move &my_move)
 		special_moves.enp_col = my_move.enp_created_col;
 
 		white_turn = !white_turn;
+		update_pins_and_checks();
 		return;
 	}
 
@@ -237,6 +215,7 @@ void ChessBoard::BoardRep::make_mv(move &my_move)
 		special_moves.raw &= ~(1ULL << (1 + offset));
 
 	white_turn = !white_turn;
+	update_pins_and_checks();
 }
 
 void ChessBoard::BoardRep::unmake_mv()
@@ -275,6 +254,7 @@ void ChessBoard::BoardRep::unmake_mv()
 		write_piece(rook_from, piece_id::rook, white_turn);
 
 		move_history.erase(move_history.end());
+		update_pins_and_checks();
 		return;
 	}
 
@@ -292,6 +272,7 @@ void ChessBoard::BoardRep::unmake_mv()
 		write_piece(rook_from, piece_id::rook, white_turn);
 
 		move_history.erase(move_history.end());
+		update_pins_and_checks();
 		return;
 	}
 
@@ -303,6 +284,7 @@ void ChessBoard::BoardRep::unmake_mv()
 		write_piece(my_move.to + direction, piece_id::pawn, !white_turn);
 
 		move_history.erase(move_history.end());
+		update_pins_and_checks();
 		return;
 	}
 
@@ -315,6 +297,7 @@ void ChessBoard::BoardRep::unmake_mv()
 	}
 
 	move_history.erase(move_history.end());
+	update_pins_and_checks();
 }
 
 int ChessBoard::BoardRep::get_checks(bool is_white)
@@ -349,14 +332,6 @@ void ChessBoard::BoardRep::check_adjust(int sq, uint64_t *moves, bool is_white)
 	int king_sq = find_king(is_white);
 	int checkr_sq = std::__countr_zero(checkers[is_white]);
 	uint64_t blocks = Fields::tf_table[checkr_sq][king_sq];
-
-	debug_out << "TF_TABLE" << std::endl;
-	U64_TO_BB(debug_out, Fields::tf_table[sq][king_sq]);
-
-	// DEBUG
-	debug_out << "BLOCKS" << std::endl;
-	U64_TO_BB(debug_out, blocks);
-	debug_out << std::endl << std::endl;
 
 	*moves &= blocks;
 }
@@ -487,8 +462,6 @@ void ChessBoard::BoardRep::get_mv_mask(move_mask *mask, int sq)
 		mask->special |= get_legal_enp_mask(sq, is_white);
 	}
 
-	// DEBUG
-	debug_out << special_moves.raw << std::endl;
 
 	// DEBUG?
 	update_pins_and_checks();
@@ -776,21 +749,16 @@ uint64_t ChessBoard::BoardRep::get_legal_castle_mask(int sq, bool is_white)
 {
 	uint64_t output = 0;
 
-	// DEBUG
-	debug_out << (uint32_t)special_moves.raw  << ' ' << sq << std::endl;
-
 	// If we are on the king square AND have either of our casling rights
 	// Then we proceed to check for castles
 	if (!(sq == (is_white ? 60 : 4)
 		&& special_moves.raw & (3 << (0 + (is_white ? 0 : 2)))))
 	{
-		debug_out << "Failed Initial Check\n";
 		return output;
 	}
 
 	// King side check
 	output |= can_ksk(is_white) * (is_white ? WHITE_KSK : BLACK_KSK);
-	debug_out << "CAN KSK\n";
 	
 	// Queen side check
 	output |= can_qsk(is_white) * (is_white ? WHITE_QSK : BLACK_QSK);
