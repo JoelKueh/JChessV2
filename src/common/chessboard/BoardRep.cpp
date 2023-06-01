@@ -42,6 +42,43 @@ ChessBoard::BoardRep::BoardRep()
 	update_pins_and_checks();
 }
 
+// TODO: There are some redundant checks here due to the fact that we generate
+// the moves and then use format_mv to turn them into real moves. Shouldn't be
+// too bad, but can be improved.
+void ChessBoard::BoardRep::gen_move_list(std::vector<move> &move_list)
+{
+	uint64_t movers = my_board.color[white_turn];
+
+	while (movers) {
+		int from = std::__countr_zero(movers);
+		movers ^= 1ULL << from;
+
+		move_mask mask;
+		get_mv_mask(&mask, from);
+
+		while (mask.push) {
+			int to = std::__countr_zero(mask.push);
+			mask.push ^= 1ULL << to;
+
+			move_list.push_back(format_mv(to, from));
+		}
+
+		while (mask.cap) {
+			int to = std::__countr_zero(mask.cap);
+			mask.cap ^= 1ULL << to;
+
+			move_list.push_back(format_mv(to, from));
+		}
+
+		while (mask.special) {
+			int to = std::__countr_zero(mask.special);
+			mask.special ^= 1ULL << to;
+			
+			move_list.push_back(format_mv(to, from));
+		}
+	}
+}
+
 ChessBoard::BoardRep::move ChessBoard::BoardRep::format_mv(int to, int from)
 {
 	move output;
@@ -115,7 +152,7 @@ ChessBoard::BoardRep::move ChessBoard::BoardRep::format_mv(int to, int from)
 
 void ChessBoard::BoardRep::make_mv(move &my_move)
 {
-	move_list.push_back(my_move);
+	move_history.push_back(my_move);
 
 	special_moves.enp_availiable = false;
 	int offset = white_turn ? 0 : 2;
@@ -194,10 +231,10 @@ void ChessBoard::BoardRep::make_mv(move &my_move)
 
 void ChessBoard::BoardRep::unmake_mv()
 {
-	if (move_list.size() == 0)
+	if (move_history.size() == 0)
 		return;
 
-	move my_move = move_list.back();
+	move my_move = move_history.back();
 
 	white_turn = !white_turn;
 	int offset = white_turn ? 0 : 2;
@@ -227,7 +264,7 @@ void ChessBoard::BoardRep::unmake_mv()
 		write_piece(king_from, piece_id::king, white_turn);
 		write_piece(rook_from, piece_id::rook, white_turn);
 
-		move_list.erase(move_list.end());
+		move_history.erase(move_history.end());
 		return;
 	}
 
@@ -244,7 +281,7 @@ void ChessBoard::BoardRep::unmake_mv()
 		write_piece(king_from, piece_id::king, white_turn);
 		write_piece(rook_from, piece_id::rook, white_turn);
 
-		move_list.erase(move_list.end());
+		move_history.erase(move_history.end());
 		return;
 	}
 
@@ -255,7 +292,7 @@ void ChessBoard::BoardRep::unmake_mv()
 		int direction = white_turn ? 8 : -8;
 		write_piece(my_move.to + direction, piece_id::pawn, !white_turn);
 
-		move_list.erase(move_list.end());
+		move_history.erase(move_history.end());
 		return;
 	}
 
@@ -267,7 +304,7 @@ void ChessBoard::BoardRep::unmake_mv()
 		special_moves.enp_availiable = false;
 	}
 
-	move_list.erase(move_list.end());
+	move_history.erase(move_history.end());
 }
 
 int ChessBoard::BoardRep::get_checks(bool is_white)

@@ -94,6 +94,7 @@ public:
 	uint64_t get_pseudo_moves(int sq);
 	void get_mv_mask(move_mask *mask, int sq);
 	char get_piece(int sq);
+	void gen_move_list(std::vector<move> &move_list);
 
 	void update_pins_and_checks();
 	void update_pins_and_checks(bool is_white);
@@ -201,7 +202,7 @@ private:
 	// actuall pinning ray can be found by searching from zero up.
 	uint64_t pins[2][9];
 	// The sequence of moves that it took to get to the current position
-	std::vector<move> move_list;
+	std::vector<move> move_history;
 
 	char *read_fen_main(char *start_char, int row = 0, int col = 0);
 	char *read_fen_castle(char *castle_str);
