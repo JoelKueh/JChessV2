@@ -93,8 +93,9 @@ public:
 	uint64_t get_legal_moves(int sq);
 	uint64_t get_pseudo_moves(int sq);
 	void get_mv_mask(move_mask *mask, int sq);
+	void get_pawn_mv_mask(move_mask *mask, int sq, bool is_white);
 	char get_piece(int sq);
-	void gen_move_list(move move_list[218]); // 218 because it appears
+	void gen_move_list(move move_list[219]); // 218 because it appears
 						// to be the max number of
 						// moves at any position.
 

@@ -20,12 +20,13 @@ ChessBoard::BoardRep::BoardRep()
 // the moves and then use format_mv to turn them into real moves. Shouldn't be
 // too bad, but can be improved.
 //
-// The move is an array of 218 elements because it appears that the maximum
-// number of moves in any position is 218
+// The move is an array of 219 elements because it appears that the maximum
+// number of moves in any position is 218 (one last move to signify the end
+// of the list)
 //
 // The last element in the move list will have its valid bit set to false
 // so the engine knows not to execute it.
-void ChessBoard::BoardRep::gen_move_list(move move_list[218])
+void ChessBoard::BoardRep::gen_move_list(move move_list[219])
 {
 	uint64_t movers = my_board.color[white_turn];
 
@@ -61,6 +62,8 @@ void ChessBoard::BoardRep::gen_move_list(move move_list[218])
 			++i;
 		}
 	}
+
+	move_list[i].valid = false;
 }
 
 ChessBoard::BoardRep::move ChessBoard::BoardRep::format_mv(int to, int from)
@@ -424,6 +427,10 @@ void ChessBoard::BoardRep::get_mv_mask(move_mask *mask, int sq)
 	if (is_white != white_turn)
 		return;
 
+	// Handling pawns separately as they are different on many fronts
+	if (manip & my_board.pawn[is_white])
+		return get_pawn_mv_mask(mask, sq, is_white);
+
 	// Pseudo Moves contains both push and cap masks, the push mask
 	// will be manipulated and then AND'ed with the color boards to
 	// create thecap mask.
@@ -442,29 +449,34 @@ void ChessBoard::BoardRep::get_mv_mask(move_mask *mask, int sq)
 	// to have them in their own section to save some computational power
 	// later.
 	mask->special = get_legal_castle_mask(sq, is_white);
-	
-	// Handle extra moves for pawn
-	if (manip & my_board.pawn[is_white])
-	{
-		mask->cap = atk_pawn(is_white, sq) & my_board.color[!is_white];
+}
 
-		// This is a bit hacky, but should make double pawn
-		// moves fairly fast.
-		// It handles pins by assuming that the double move will be
-		// blocked if and only if the single move was blocked.
-		int dir = is_white ? -1 : 1;
-		int row = is_white ? 6 : 1;
-		if (!(1ULL << (sq + dir * 16) & my_board.occupied)
-				&& (1ULL << (sq + dir * 8) & mask->push)
-				&& (sq / 8 == row)) 
-			mask->special = 1ULL << (sq + dir * 16);
+void ChessBoard::BoardRep::get_pawn_mv_mask(move_mask *mask, int sq, bool is_white)
+{
+	mask->push = mv_pawn(is_white, sq);
+	mask->push |= atk_pawn(is_white, sq) & my_board.color[!is_white];
 
-		mask->special |= get_legal_enp_mask(sq, is_white);
+	// This is a bit hacky, but should make double pawn
+	// moves fairly fast.
+	// It handles pins by assuming that the double move will be
+	// blocked if and only if the single move was blocked.
+	int dir = is_white ? -1 : 1;
+	int row = is_white ? 6 : 1;
+	if (!(1ULL << (sq + dir * 16) & my_board.occupied)
+			&& (1ULL << (sq + dir * 8) & mask->push)
+			&& (sq / 8 == row)) {
+		mask->special = 1ULL << (sq + dir * 16);
+		mask->push |= 1ULL << (sq + dir * 16);
 	}
 
+	pin_adjust(sq, &(mask->push));
+	check_adjust(sq, &(mask->push));
+	mask->special &= mask->push;
+	mask->push ^= mask->special;
 
-	// DEBUG?
-	update_pins_and_checks();
+	mask->cap = mask->push & my_board.color[!is_white];
+	mask->push ^= mask->cap;
+	mask->special |= get_legal_enp_mask(sq, is_white);
 }
 
 inline void ChessBoard::BoardRep::update_pins_and_checks()
