@@ -13,7 +13,6 @@ ChessBoard::BoardRep::BoardRep()
 	char init_board[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 	// char init_board[] = "2k5/8/8/8/3Q4/8/8/4K3 w KQkq - 0 1";
 	fen_to_board(init_board);
-	update_pins_and_checks();
 }
 
 // TODO: There are some redundant checks here due to the fact that we generate
@@ -950,6 +949,8 @@ void ChessBoard::BoardRep::fen_to_board(const char *fen_str)
 	halfmove_clock = *char_pos - '0';
 	char_pos += 2;
 	fullmove_number = *char_pos - '0';
+
+	update_pins_and_checks();
 }
 
 void ChessBoard::BoardRep::wipe_board()

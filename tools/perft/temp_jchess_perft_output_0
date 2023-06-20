@@ -4,7 +4,6 @@ d8e7: 1
 d8f6: 1
 d8g5: 1
 d8h4: 1
-e8e7: 1
 f8e7: 1
 f8d6: 1
 f8c5: 1
@@ -19,8 +18,6 @@ b7b6: 1
 b7b5: 1
 c7c6: 1
 c7c5: 1
-d7d6: 1
-d7d5: 1
 f7f6: 1
 f7f5: 1
 g7g6: 1
@@ -29,5 +26,5 @@ h7h6: 1
 h7h5: 1
 e6e5: 1
 Perft for fen string: rnbqkbnr/pppp1ppp/4p3/8/Q7/2P5/PP1PPPPP/RNB1KBNR b KQkq - 1 2 
-completed successfully with 30 nodes searched 
+completed successfully with 27 nodes searched 
 after 0 milliseconds.
