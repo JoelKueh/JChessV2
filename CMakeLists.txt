@@ -8,6 +8,9 @@ project(JChess VERSION 2.0)
 set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
+# Set Debug
+set(CMAKE_BUILD_TYPE Debug)
+
 # Ncurses stuff
 set(CURSES_NEED_NCURSES TRUE)
 set(CURSES_NEED_WIDE TRUE)

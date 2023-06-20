@@ -334,6 +334,7 @@ void ChessBoard::BoardRep::check_adjust(int sq, uint64_t *moves, bool is_white)
 	int king_sq = find_king(is_white);
 	int checkr_sq = std::__countr_zero(checkers[is_white]);
 	uint64_t blocks = Fields::tf_table[checkr_sq][king_sq];
+	blocks |= checkers[is_white];
 
 	*moves &= blocks;
 }
@@ -351,7 +352,7 @@ void ChessBoard::BoardRep::king_mv_adjust(int sq, uint64_t *moves, bool is_white
 	uint64_t to_parse = *moves;
 	uint64_t board = my_board.occupied & ~(1ULL << find_king(is_white));
 	to_parse &= ~board;
-	*moves &= ~board;
+	*moves &= ~my_board.color[is_white];
 
 	while (to_parse)
 	{
@@ -504,8 +505,10 @@ inline void ChessBoard::BoardRep::update_pins_and_checks(bool is_white)
 	bchkrs &= (my_board.queen[!is_white] ^ my_board.bishop[!is_white]);
 	uint64_t nchkrs = MoveTables::read_natk(king_sq);
 	nchkrs &= my_board.knight[!is_white];
+	uint64_t pchkrs = atk_pawn(is_white, king_sq);
+	pchkrs &= my_board.pawn[!is_white];
 
-	this->checkers[is_white] = rchkrs | bchkrs | nchkrs;
+	this->checkers[is_white] = rchkrs | bchkrs | nchkrs | pchkrs;
 
 	// Hanlde Pins
 	board ^= pinned & my_board.color[is_white];
@@ -522,6 +525,7 @@ inline void ChessBoard::BoardRep::update_pins_and_checks(bool is_white)
 		int sq = std::__countr_zero(ratkrs);
 		ratkrs ^= 1ULL << sq;
 		pins[is_white][i] = ChessBoard::Fields::tf_table[sq][king_sq];
+		pins[is_white][i] ^= 1ULL << king_sq;
 		pins[is_white][8] ^= pins[is_white][i];
 
 		++i;
@@ -531,6 +535,7 @@ inline void ChessBoard::BoardRep::update_pins_and_checks(bool is_white)
 		int sq = std::__countr_zero(batkrs);
 		batkrs ^= 1ULL << sq;
 		pins[is_white][i] = ChessBoard::Fields::tf_table[sq][king_sq];
+		pins[is_white][i] ^= 1ULL << king_sq;
 		pins[is_white][8] ^= pins[is_white][i];
 
 		++i;
