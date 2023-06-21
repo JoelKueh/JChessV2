@@ -1,4 +1,12 @@
 #include "Game.h"
+#include <netinet/in.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
 
 // DEBUG
 #include <fstream>
@@ -23,8 +31,35 @@ Game::Game(int white, int black, std::string *time_str)
 	UI->update_pieces(board_str);
 }
 
+int sockfd;
 void Game::init()
 { 
+
+    int valread;
+
+
+    //create an address for the socket
+    struct sockaddr_in serv_addr;
+
+
+    // create socket
+    if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+        perror("socket failed");
+        exit(EXIT_FAILURE);
+    }
+    
+    // define address structure
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(9000);
+    serv_addr.sin_addr.s_addr = INADDR_ANY; 
+
+    if(connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr))){
+        perror("error connecting");
+        exit(EXIT_FAILURE);
+        }
+        
+
+
 
 }
 
@@ -43,6 +78,8 @@ int Game::update()
 		char board_str[8][8];
 		board->board_to_strarr(board_str);
 		UI->update_pieces(board_str);
+		int data = htonl(UI->write_buf.piece);
+		send(sockfd, &data, sizeof(data), 0);
 	}
 
 	// TODO: REFACTOR THIS
@@ -55,6 +92,13 @@ int Game::update()
 		UI->set_special_mask(moves.special);
 		UI->redraw_pieces();
 		last_selected_piece = selected;
+
+	    //char response[256];
+	    //recv(sockfd, &response,  sizeof(response), 0);
+	    
+	    //printf("Server sent: %s", response);
+
+
 	}
 
 	// Handle updates to the time counts for each player.
