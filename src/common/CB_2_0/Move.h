@@ -1,0 +1,61 @@
+#ifndef CB_2_0_MOVE
+#define CB_2_0_MOVE
+
+#include <cstdint>
+
+#include "Utils.h"
+
+namespace CB 
+{
+
+class Move
+{
+public:
+	Move(unsigned int from, unsigned int to, unsigned int flags) {
+		data = ((flags & 0xf) << 12)
+		     | ((from & 0x3f) << 6)
+		     | (to & 0x3f);
+	}
+
+	unsigned int get_to() const { return data & TO; } 
+	unsigned int get_from() const { return (data & FROM) >> 6; }
+	unsigned int get_flags() const { return (data & FLAGS) >> 12; }
+
+	void set_to(unsigned int to) {
+		data = (data & ~TO) | (to & 0x3f);
+	}
+	void set_from(unsigned int from) {
+		data = (data & ~FROM) | ((from & 0x3f) << 6);
+	}
+	void set_flags(unsigned int flags) {
+		data = (data & ~FLAGS) | ((flags & 0xf) << 12);
+	}
+
+	enum {
+		QUIETS = 0,
+		DOUBLE_PAWN_PUSH = 1,
+		KING_SIDE_CASTLE = 2,
+		QUEEN_SIDE_CASTLE = 3,
+		CAPTURE = 4,
+		ENPASSANT = 5,
+		KNIGHT_PROMO = 8,
+		BISHOP_PROMO = 9,
+		ROOK_PROMO = 10,
+		QUEEN_PROMO = 11,
+		KNIGHT_PROMO_CAPTURE = 12,
+		BISHOP_PROMO_CAPTURE = 13,
+		ROOK_PROMO_CAPTURE = 14,
+		QUEEN_PROMO_CAPTURE = 15 
+	};
+
+protected:
+	uint16_t data;
+
+	static const uint16_t FLAGS = 0xf << 12;
+	static const uint16_t FROM = 0x3f << 6;
+	static const uint16_t TO = 0x3f;
+};
+
+}
+
+#endif

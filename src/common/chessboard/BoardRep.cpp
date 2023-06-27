@@ -351,7 +351,7 @@ void ChessBoard::BoardRep::king_mv_adjust(int sq, uint64_t *moves, bool is_white
 {
 	uint64_t to_parse = *moves;
 	uint64_t board = my_board.occupied & ~(1ULL << find_king(is_white));
-	to_parse &= ~board;
+	to_parse &= ~my_board.color[is_white];
 	*moves &= ~my_board.color[is_white];
 
 	while (to_parse)

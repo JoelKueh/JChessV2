@@ -9,7 +9,7 @@ set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 # Set Debug
-set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_BUILD_TYPE Debug)
 
 # Ncurses stuff
 set(CURSES_NEED_NCURSES TRUE)
@@ -25,6 +25,11 @@ add_library(chessboard src/common/chessboard/BoardRep.cpp
 	src/common/chessboard/dir_table.cpp
 	src/common/chessboard/move_gen/magics.cpp
 	src/common/chessboard/move_gen/move_tables.cpp)
+
+# Build CB_2_0 library
+#add_library(CB_2_0 src/common/CB_2_0/BoardRep.cpp
+#	src/common/chessboard/tables/magics.cpp
+#	src/common/chessboard/tables/move_tables.cpp)
 
 # Force CMake to output compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
@@ -47,6 +52,8 @@ add_executable(old_debug src/debug/old/JChessV2.cpp
 	src/debug/old/scenes/StartMenu/StartCLI.cpp
 	src/debug/old/scenes/StartMenu/StartGUI.cpp)
 target_link_libraries(old_debug chessboard ${NCURSES_LIBRARIES} glfw)
+
+# Build new debug executable
 
 # Build Perft
 add_executable(perft src/debug/perft/perft.cpp)
