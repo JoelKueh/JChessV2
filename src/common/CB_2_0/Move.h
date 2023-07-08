@@ -17,9 +17,14 @@ public:
 		     | (to & 0x3f);
 	}
 
+	Move(uint16_t data) {
+		this->data = data;
+	}
+
 	unsigned int get_to() const { return data & TO; } 
 	unsigned int get_from() const { return (data & FROM) >> 6; }
 	unsigned int get_flags() const { return (data & FLAGS) >> 12; }
+	bool is_invalid() const { return data == INVALID; }
 
 	void set_to(unsigned int to) {
 		data = (data & ~TO) | (to & 0x3f);
@@ -47,6 +52,8 @@ public:
 		ROOK_PROMO_CAPTURE = 14,
 		QUEEN_PROMO_CAPTURE = 15 
 	};
+	static const uint16_t INVALID = 0b0110111111111111;
+
 
 protected:
 	uint16_t data;

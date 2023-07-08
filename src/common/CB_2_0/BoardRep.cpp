@@ -9,19 +9,141 @@ CB::BoardRep::BoardRep()
 	write_fen(init_board);
 }
 
-CB::BoardRep::BoardRep(const char fen[])
+CB::BoardRep::BoardRep(char fen[])
 {
 	Tables::gen_move_tables();
 
 	write_fen(fen);
 }
 
+void CB::BoardRep::wipe_board()
+{
+	move_history.clear();
+	state_history.clear();
+
+	for (int i = 0; i < 2; ++i) {
+		bb.color[i] = 0;
+		for (int k = 0; k < 6; ++k) {
+			bb.piece[i][k] = 0;
+		}
+	}
+	bb.occupied = 0;
+
+	for (int i = 0; i < 64; ++i) {
+		mailbox[i] = EMPTY;
+	}
+
+	white_turn = true;
+}
+
+void CB::BoardRep::write_fen(char *const fen_str)
+{
+	wipe_board();
+	int sq = 0;
+	char *fen = fen_str;
+
+	while (sq < 64) {
+		parse_fen_main(*fen++, sq);
+	}
+
+	white_turn = (*fen++ == 'w');
+	++fen;
+
+	state_history.push_back(board_state_extra());
+	board_state_extra &curr = state_history.back();
+	for (int i = 0; i < 4; ++i) {
+		switch (*fen++) {
+			case 'K': curr.set_ksc_right(true); continue;
+			case 'Q': curr.set_qsc_right(true); continue;
+			case 'k': curr.set_ksc_right(false); continue;
+			case 'q': curr.set_qsc_right(false); continue;
+
+			default: continue;
+		}
+	}
+	fen++;
+
+	if (*fen++ != '-')
+		curr.set_enp(*fen++ - '0');
+	fen++;
+
+	int half_mv_clock = 10;
+	while (*fen != ' ') {
+		half_mv_clock *= 10;
+		half_mv_clock += *fen++ - '0';
+	}
+	fen++;
+
+	full_move_number = 0;
+	while (*fen != ' ') {
+		full_move_number *= 10;
+		full_move_number += *fen++ - '0';
+	}
+}
+
+void CB::BoardRep::parse_fen_main(const char to_parse, int &sq)
+{
+	switch (to_parse) {
+		case 'p': write_piece(false, PAWN, sq++); return;
+		case 'P': write_piece(true, PAWN, sq++); return;
+		case 'n': write_piece(false, KNIGHT, sq++); return;
+		case 'N': write_piece(true, KNIGHT, sq++); return;
+		case 'b': write_piece(false, BISHOP, sq++); return;
+		case 'B': write_piece(true, BISHOP, sq++); return;
+		case 'r': write_piece(false, ROOK, sq++); return;
+		case 'R': write_piece(true, ROOK, sq++); return;
+		case 'q': write_piece(false, QUEEN, sq++); return;
+		case 'Q': write_piece(true, QUEEN, sq++); return;
+		case 'k': write_piece(false, KING, sq++); return;
+		case 'K': write_piece(true, KING, sq++); return;
+
+		case '/': return;
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+			  sq += to_parse - '0'; return;
+
+		default: sq = 64; return;
+	}
+}
+
+void CB::BoardRep::board_to_str(char board_str[8][8]) const
+{
+	for (int row = 0; row < 8; ++row) {
+		for (int col = 0; col < 8; ++col) {
+			board_str[row][col] = sq_to_char(row * 8 + col);
+		}
+	}
+}
+
+char CB::BoardRep::sq_to_char(int sq) const
+{
+	// This is not null-character delimited, don't try to print it
+	const char piece_arr[7] = { 'p', 'n', 'b', 'r', 'q', 'k', ' ' };
+	constexpr int to_up = 'a' - 'A';
+
+	char piece = piece_arr[get_pid(sq)];
+	piece -= sq_is_white(sq) ? to_up : 0;
+
+	return piece;
+}
+
+bool CB::BoardRep::sq_is_white(int sq) const
+{
+	return ((1ULL << sq) & bb.color[true]);
+}
+
 void CB::BoardRep::make(const Move &move)
 {
-	move_history.push(move);
+	move_history.push_back(move);
 
-	state_history.push(state_history.top());
-	board_state_extra *new_state = &state_history.top();
+	state_history.push_back(state_history.back());
+	board_state_extra *new_state = &state_history.back();
 
 	unsigned int flags = move.get_flags();
 	unsigned int to = move.get_to();
@@ -151,8 +273,8 @@ void CB::BoardRep::unmake()
 {
 	white_turn = !white_turn;
 
-	Move &move = move_history.top(); 
-	board_state_extra &state = state_history.top();
+	Move &move = move_history.back(); 
+	board_state_extra &state = state_history.back();
 
 	unsigned int from = move.get_from();
 	unsigned int to = move.get_to();
@@ -218,6 +340,9 @@ void CB::BoardRep::unmake()
 		break;
 	}
 	}
+
+	move_history.pop_back();
+	state_history.pop_back();
 }
 
 void CB::BoardRep::write_piece(bool is_white, int pid, int sq)
@@ -244,9 +369,53 @@ void CB::BoardRep::delete_piece(int sq)
 	mailbox[sq] = EMPTY;
 }
 
+CB::Move CB::BoardRep::format_mv(unsigned int to, unsigned int from, pid promo_piece)
+{
+	unsigned int flags;
+	move_set mask;
+	get_mv_set(&mask, from);
+
+	if ((mask.push | mask.cap) & (1ULL << to)) {
+		return format_simple_mv(to, from);
+	} else if (mask.special & (1ULL << to)) {
+		int row = to / 8;
+		if (row == 2 || row == 5)
+			return Move(from, to, Move::ENPASSANT);
+		else if (to == W_QSC_TARGET || to == B_QSC_TARGET)
+			return Move(0, 0, Move::QUEEN_SIDE_CASTLE);
+		else if (to == W_KSC_TARGET || to == B_KSC_TARGET)
+			return Move(0, 0, Move::KING_SIDE_CASTLE);
+		return Move(Move::INVALID);
+	} else if (mask.promo & (1ULL << to)) {
+		return format_promo_mv(to, from, promo_piece);
+	} else {
+		return Move(Move::INVALID);
+	}
+}
+
+CB::Move CB::BoardRep::format_simple_mv(unsigned int to, unsigned int from)
+{
+	unsigned int flags;
+	flags = get_pid(to) == pid::EMPTY ? Move::QUIETS : Move::CAPTURE;
+	return Move(from, to, flags);
+}
+
+CB::Move CB::BoardRep::format_promo_mv(unsigned int to, unsigned int from, pid promo_piece)
+{
+	unsigned int flag;
+	const unsigned int flag_arr[5] = { 0, Move::KNIGHT_PROMO,
+		Move::BISHOP_PROMO, Move::ROOK_PROMO, Move::QUEEN_PROMO };
+	flag = flag_arr[promo_piece];
+
+	// Adding on 4 to the a promotion turns it into a capture promotion
+	flag += get_pid(to) == EMPTY ? 0 : 4;
+	return Move(from, to, flag);
+}
+
 std::vector<CB::Move> *CB::BoardRep::gen_move_list()
 {
 	std::vector<Move> *move_list;
+	move_list = new std::vector<Move>;
 
 	if (!tables_valid)
 		update_all();
@@ -254,6 +423,7 @@ std::vector<CB::Move> *CB::BoardRep::gen_move_list()
 	append_simple_moves(move_list);
 	append_castle_moves(move_list);
 	append_enp_moves(move_list);
+	append_dpawn_push(move_list);
 	append_promos(move_list);
 
 	return move_list;
@@ -270,7 +440,7 @@ void CB::BoardRep::append_simple_moves(std::vector<Move> *move_list)
 		uint64_t simple = get_legal_mv_mask(sq);
 		while (simple) {
 			int target = pop_rbit(simple);
-			move_list->push_back(format_mv(target, sq));
+			move_list->push_back(format_simple_mv(target, sq));
 		}
 	}
 }
@@ -284,9 +454,9 @@ void CB::BoardRep::append_castle_moves(std::vector<Move> *move_list)
 		move_list->push_back(Move(0, 0, Move::QUEEN_SIDE_CASTLE));
 }
 
-bool CB::BoardRep::ksc_legal()
+bool CB::BoardRep::ksc_legal() const
 {
-	if (!state_history.top().get_ksc_right(white_turn))
+	if (!state_history.back().get_ksc_right(white_turn))
 		return false;
 
 	if ((white_turn ? W_KSC_OCC_MASK : B_KSC_OCC_MASK) & (bb.occupied | threats))
@@ -295,9 +465,9 @@ bool CB::BoardRep::ksc_legal()
 	return true;
 }
 
-bool CB::BoardRep::qsc_legal()
+bool CB::BoardRep::qsc_legal() const
 {
-	if (!state_history.top().get_qsc_right(white_turn))
+	if (!state_history.back().get_qsc_right(white_turn))
 		return false;
 
 	if ((white_turn ? W_QSC_OCC_MASK : B_QSC_OCC_MASK) & (bb.occupied | threats))
@@ -308,15 +478,29 @@ bool CB::BoardRep::qsc_legal()
 
 void CB::BoardRep::append_enp_moves(std::vector<Move> *move_list)
 {
-	if (!state_history.top().enp_availiable())
+	if (!state_history.back().enp_availiable())
 		return;
 
 	int enp_sq = (white_turn ? LOWEST_B_ENP_ROW_SQ : LOWEST_W_ENP_ROW_SQ)
-		+ state_history.top().get_enp_col();
+		+ state_history.back().get_enp_col();
 	uint64_t enp_sources = Tables::read_patk(!white_turn, enp_sq) & bb.piece[white_turn][PAWN];
 	while (enp_sources) {
 		int sq = pop_rbit(enp_sources);
 		move_list->push_back(Move(enp_sq, sq, Move::ENPASSANT));
+	}
+}
+
+void CB::BoardRep::append_dpawn_push(std::vector<Move> *move_list)
+{
+	uint64_t mask = white_turn ? BB_W_PAWN_HOME : BB_B_PAWN_HOME;
+
+	uint64_t parser = mask & bb.piece[white_turn][PAWN];
+	while (parser) {
+		int from = pop_rbit(parser);
+		int to = from + (white_turn ? -16 : 16);
+		int passed = from + (white_turn ? -8 : 8);
+		if (!(Tables::tf_table[to][passed] & bb.occupied))
+			move_list->push_back(Move(from, to, Move::DOUBLE_PAWN_PUSH));
 	}
 }
 
@@ -359,7 +543,7 @@ void CB::BoardRep::get_mv_set(move_set *mask, int sq)
 	mask->push ^= mask->cap;
 
 	if (pid == PAWN) {
-		mask->special = get_enp_mask(sq);
+		mask->special = get_pawn_sp_mask(sq);
 		mask->promo = (mask->push | mask->cap) & (white_turn ? BB_TOP_ROW : BB_BOTTOM_ROW);
 		mask->push &= ~mask->promo;
 		mask->cap &= ~mask->promo;
@@ -370,6 +554,39 @@ void CB::BoardRep::get_mv_set(move_set *mask, int sq)
 		mask->special = 0;
 		mask->promo = 0;
 	}
+}
+
+uint64_t CB::BoardRep::get_pawn_sp_mask(int sq) const
+{
+	int row = sq / 8;
+	int home_row = white_turn ? 6 : 1;
+	int enp_row = white_turn ? 3 : 4;
+
+	if (row == home_row) {
+		int target = sq + (white_turn ? -16 : 16);
+		int passed = sq + (white_turn ? -8 : 8);
+		if (!(Tables::tf_table[target][passed] & bb.occupied))
+			return (1ULL << target);
+	} else if (row == enp_row && state_history.back().enp_availiable()) {
+		int target = (row + (white_turn ? -1 : 1)) * 8 + state_history.back().get_enp_col();
+		return (1ULL << target);
+	}
+
+	return 0;
+}
+
+uint64_t CB::BoardRep::get_castle_mask() const
+{
+	uint64_t moves = 0;
+	if (ksc_legal()) {
+		moves |= white_turn ? BB_W_KSC_TARGET : BB_B_KSC_TARGET;
+	}
+
+	if (qsc_legal()) {
+		moves |= white_turn ? BB_W_QSC_TARGET : BB_B_KSC_TARGET;
+	}
+
+	return moves;
 }
 
 void CB::BoardRep::update_all()
@@ -405,7 +622,7 @@ void CB::BoardRep::update_checks()
 	// Helpful reminder that a king can never check another king
 }
 
-uint64_t CB::BoardRep::pawn_smear(bool is_white)
+uint64_t CB::BoardRep::pawn_smear(bool is_white) const
 {
 	uint64_t output;
 
@@ -445,26 +662,26 @@ void CB::BoardRep::update_pins()
 	pins[9] &= ~(1ULL << king_sq);
 }
 
-uint64_t CB::BoardRep::xray_ratk(uint64_t occ, uint64_t blockers, int sq)
+uint64_t CB::BoardRep::xray_ratk(uint64_t occ, uint64_t blockers, int sq) const
 {
 	uint64_t attacks = Tables::read_ratk(sq, occ);
 	blockers &= attacks;
-	return attacks ^ Tables::read_ratk(sq ^ blockers, occ);
+	return attacks ^ Tables::read_ratk(sq, occ ^ blockers);
 }
 
-uint64_t CB::BoardRep::xray_batk(uint64_t occ, uint64_t blockers, int sq)
+uint64_t CB::BoardRep::xray_batk(uint64_t occ, uint64_t blockers, int sq) const
 {
 	uint64_t attacks = Tables::read_batk(sq, occ);
 	blockers &= attacks;
-	return attacks ^ Tables::read_ratk(sq ^ blockers, occ);
+	return attacks ^ Tables::read_ratk(sq, occ ^ blockers);
 }
 
-inline int CB::BoardRep::get_pid(int sq)
+inline int CB::BoardRep::get_pid(int sq) const
 {
 	return mailbox[sq];
 }
 
-uint64_t CB::BoardRep::get_pseudo_mv_mask(int sq)
+uint64_t CB::BoardRep::get_pseudo_mv_mask(int sq) const
 {
 	int pid = get_pid(sq);
 
@@ -495,7 +712,7 @@ uint64_t CB::BoardRep::get_pseudo_mv_mask(int sq)
 	}
 }
 
-uint64_t CB::BoardRep::get_legal_mv_mask(int sq)
+uint64_t CB::BoardRep::get_legal_mv_mask(int sq) const
 {
 	int pid = get_pid(sq);
 	uint64_t moves = get_pseudo_mv_mask(sq);
@@ -511,12 +728,20 @@ uint64_t CB::BoardRep::get_legal_mv_mask(int sq)
 	return moves & legal_mask;
 }
 
-void CB::BoardRep::king_mv_adjust(int sq, uint64_t &moves)
+uint64_t CB::BoardRep::pawn_moves(int sq) const
+{
+	uint64_t moves = Tables::read_patk(white_turn, sq) & bb.color[!white_turn];
+	int target = sq + (white_turn ? -8 : 8);
+	moves |= (1ULL << target) & ~bb.occupied;
+	return moves;
+}
+
+void CB::BoardRep::king_mv_adjust(int sq, uint64_t &moves) const
 {
 	moves &= ~threats;
 }
 
-uint64_t CB::BoardRep::get_pin_mask(int sq)
+uint64_t CB::BoardRep::get_pin_mask(int sq) const
 {
 	if (!((1ULL << sq) & pins[9]))
 		return BB_FULL;	

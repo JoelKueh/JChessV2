@@ -20,6 +20,8 @@ const int W_KSC_ROOK = 63;
 const int W_QSC_ROOK = 56;
 const int W_KSC_TARGET = 62;
 const int W_QSC_TARGET = 58;
+constexpr uint64_t BB_W_KSC_TARGET = 1ULL << W_KSC_TARGET;
+constexpr uint64_t BB_W_QSC_TARGET = 1ULL << W_QSC_TARGET;
 const uint64_t W_KSC_OCC_MASK = 0x6000000000000000;
 const uint64_t W_QSC_OCC_MASK = 0x0E00000000000000;
 
@@ -28,6 +30,8 @@ const int B_KSC_ROOK = 7;
 const int B_QSC_ROOK = 0;
 const int B_KSC_TARGET = 6;
 const int B_QSC_TARGET = 2;
+constexpr uint64_t BB_B_KSC_TARGET = 1ULL << B_KSC_TARGET;
+constexpr uint64_t BB_B_QSC_TARGET = 1ULL << B_QSC_TARGET;
 const uint64_t B_KSC_OCC_MASK = 0x0000000000000060;
 const uint64_t B_QSC_OCC_MASK = 0x000000000000000E;
 
@@ -73,18 +77,22 @@ enum pid {
 class board_state_extra {
 public:
 	board_state_extra() { data = INIT_BS; }
-	board_state_extra(board_state_extra &old_bs) { data = old_bs.data; }
+	board_state_extra(const board_state_extra &old_bs) { data = old_bs.data; }
 
-	bool get_qsc_right(bool is_white) { return data & (0b100 >> (is_white * 2)); }
-	bool get_ksc_right(bool is_white) { return data & (0b1000 >> (is_white * 2)); }
+	bool get_qsc_right(bool is_white) const { return data & (0b100 >> (is_white * 2)); }
+	bool get_ksc_right(bool is_white) const { return data & (0b1000 >> (is_white * 2)); }
 
 	void remove_qsc_right(bool is_white) { data &= ~0b100 >> (is_white * 2); }
 	void remove_ksc_right(bool is_white) { data &= ~0b1000 >> (is_white * 2); }
 	void remove_castle_rights(bool is_white) { data &= ~0b1100 >> (is_white * 2); }
 
-	bool enp_availiable() { return data & ENP_AVAILIABLE; }
-	unsigned int get_enp_col() { return data & ENP_COL; }
-	unsigned int get_pid_col() { return data & PID_COL; }
+	void set_qsc_right(bool is_white) { data |= 0b100 >> (is_white * 2); }
+	void set_ksc_right(bool is_white) { data |= 0b1000 >> (is_white * 2); }
+	void set_castle_rights(bool is_white) { data |= 0b1100 >> (is_white * 2); }
+
+	bool enp_availiable() const { return data & ENP_AVAILIABLE; }
+	unsigned int get_enp_col() const { return (data & ENP_COL) >> 5; }
+	unsigned int get_pid_col() const { return (data & PID_COL) >> 5; }
 	
 	void set_enp(unsigned int enp_col) {
 		data = (data & ~ENP_COL) | (enp_col << 5);
@@ -103,7 +111,7 @@ public:
 		data = (data & ~HALFMOVE_CLOCK) | (clock << 8);
 	}
 
-	~board_state_extra();
+	~board_state_extra() = default;
 
 private:
 	uint16_t data;
