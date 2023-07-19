@@ -85,8 +85,8 @@ void CB::Tables::gen_patk()
 
 		// This may overflow, but that should not matter as overflow of a r-shift
 		// becomes zero.
-		output |= (1ULL << (j - 9)) & not_lcol;
-		output |= (1ULL << (j - 7)) & not_rcol;
+		output |= (1ULL << (j + 9)) & not_rcol;
+		output |= (1ULL << (j + 7)) & not_lcol;
 
 		PAtkTable[0][j] = output;
 	}

@@ -11,6 +11,8 @@ namespace CB
 class Move
 {
 public:
+	Move() = default;
+
 	Move(unsigned int from, unsigned int to, unsigned int flags) {
 		data = ((flags & 0xf) << 12)
 		     | ((from & 0x3f) << 6)
@@ -19,6 +21,10 @@ public:
 
 	Move(uint16_t data) {
 		this->data = data;
+	}
+
+	void operator=(const Move &rhs) {
+		this->data = rhs.data;
 	}
 
 	unsigned int get_to() const { return data & TO; } 

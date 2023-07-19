@@ -1,13 +1,44 @@
+#include <chrono>
 #include <iostream>
 #include <string>
 #include <cstring>
 #include <sstream>
 #include "../../common/CB_2_0/BoardRep.cpp"
 
-void parse_command(CB::BoardRep board, const std::string &command, std::stringstream &args);
-void parse_position(CB::BoardRep board, std::stringstream &args);
+// TODO: IMPLEMENT MULTITHREADED THINKING
+#include <thread>
+
+#define BYTE_TO_BINARY(byte)  \
+  (byte & 0x01 ? '1' : '0') << \
+  (byte & 0x02 ? '1' : '0') << \
+  (byte & 0x04 ? '1' : '0') << \
+  (byte & 0x08 ? '1' : '0') << \
+  (byte & 0x10 ? '1' : '0') << \
+  (byte & 0x20 ? '1' : '0') << \
+  (byte & 0x40 ? '1' : '0') << \
+  (byte & 0x80 ? '1' : '0')
+
+
+#define U64_TO_BB(file, u64)  \
+  file << BYTE_TO_BINARY(u64) << std::endl \
+	<< BYTE_TO_BINARY(u64 >> 8) << std::endl \
+  	<< BYTE_TO_BINARY(u64 >> 16) << std::endl \
+	<< BYTE_TO_BINARY(u64 >> 24) << std::endl \
+  	<< BYTE_TO_BINARY(u64 >> 32) << std::endl \
+  	<< BYTE_TO_BINARY(u64 >> 40) << std::endl \
+  	<< BYTE_TO_BINARY(u64 >> 48) << std::endl \
+    << BYTE_TO_BINARY(u64 >> 56) << std::endl << std::endl \
+
+void parse_command(CB::BoardRep &board, const std::string &command, std::stringstream &args);
+void parse_position(CB::BoardRep &board, std::stringstream &args);
 void parse_move(CB::BoardRep &board, std::stringstream &args);
+void print_move(CB::Move &move);
+void print_moves(CB::BoardRep &board, std::stringstream &args);
 void print_board(const CB::BoardRep &board);
+void handle_go(CB::BoardRep &board, std::stringstream &args);
+void init_perft(CB::BoardRep &board, int depth);
+uint64_t perft(CB::BoardRep &board, int depth);
+std::string to_algebraic(int sq);
 CB::Move algbr_to_move(CB::BoardRep &board, std::string &algebraic);
 
 const char np_line[] = "+---+---+---+---+---+---+---+---+";
@@ -42,7 +73,7 @@ int main(int argc, char *argv[])
 	}
 }
 
-void parse_command(CB::BoardRep board, const std::string &command, std::stringstream &args)
+void parse_command(CB::BoardRep &board, const std::string &command, std::stringstream &args)
 {
 	if (command == "position") {
 		parse_position(board, args);
@@ -61,40 +92,42 @@ void parse_command(CB::BoardRep board, const std::string &command, std::stringst
 	} else if (command == "exit") {
 		std::cout << "Quitting..." << std::endl;
 		exit(0);
+	} else if (command == "movels") {
+		print_moves(board, args);
+	} else if (command == "go") {
+		handle_go(board, args);
 	} else {
 		std::cout << "Invalid command, Use \"help\" to see a list of commands." << std::endl;
 	}
 }
 
-void parse_position(CB::BoardRep board, std::stringstream &args)
+void parse_position(CB::BoardRep &board, std::stringstream &args)
 {
 	std::string fen;
 	std::string next;
 
 	args >> next;
+	args >> next;
 	while (args && next != "move") {
-		fen.push_back(' ');
 		fen += next;
+		fen.push_back(' ');
 
 		args >> next;
 		for (int i = 0; i < next.size(); ++i)
 			next.at(i) = tolower(next.at(i));
 	}
 
-	std::vector<CB::Move> move_list;
-	while (args) {
-		args >> next;
-		move_list.push_back(algbr_to_move(board, next));
-		if (move_list.back().is_invalid()) {
+	const char *fen_c = fen.c_str();
+	board.write_fen(fen_c);
+ 	CB::Move move;
+	while (args >> next) {
+		move = algbr_to_move(board, next);
+		if (move.is_invalid()) {
 			std::cout << "INVALID MOVE, SKIPPING MOVE EXECUTION";
 			std::cout << std::endl;
 			return;
 		}
-	}
-
-	while (move_list.size() != 0) {
-		board.make(move_list.back());
-		move_list.pop_back();
+		board.make(move);
 	}
 }
 
@@ -132,8 +165,9 @@ CB::Move algbr_to_move(CB::BoardRep &board, std::string &algebraic)
 	for (int i = 0; i < algebraic.size(); ++i) {
 		algebraic.at(i) = tolower(algebraic.at(i));
 	}
-	int to = (7 - (algebraic.at(0) - 'a')) * 8 + (algebraic.at(1) - '0');
-	int from = (7 - (algebraic.at(2) - 'a')) * 8 + (algebraic.at(3) - '0');
+
+	int to = (algebraic.at(2) - 'a') + (7 - (algebraic.at(3) - '1')) * 8;
+	int from = (algebraic.at(0) - 'a') + (7 - (algebraic.at(1) - '1')) * 8;
 
 	if (algebraic.size() == 4)
 		return board.format_mv(to, from, CB::EMPTY);
@@ -147,4 +181,132 @@ CB::Move algbr_to_move(CB::BoardRep &board, std::string &algebraic)
 		default: return CB::Move(CB::Move::INVALID);
 	}
 	return board.format_mv(to, from, promo_pid);
+}
+
+void print_moves(CB::BoardRep &board, std::stringstream &args)
+{
+	std::string square;
+	if (args >> square) {
+		if (square.size() != 2) {
+			std::cout << "INVALID ARGS, SKIPPING" << std::endl;
+			return;
+		}
+
+		square.at(0) = tolower(square.at(0));
+		square.at(1) = tolower(square.at(1));
+
+		int sq = (square.at(0) - 'a')
+			+ (7 - (square.at(1) - '1')) * 8;
+
+		CB::move_set moves;
+		board.get_mv_set(&moves, sq);
+
+		std::cout << "Quiets:\n";
+		U64_TO_BB(std::cout, moves.push);
+		std::cout << "Cap:\n";
+		U64_TO_BB(std::cout, moves.cap);
+		std::cout << "Special:\n";
+		U64_TO_BB(std::cout, moves.special);
+		std::cout << "Promo:\n";
+		U64_TO_BB(std::cout, moves.promo);
+		std::cout << std::flush;
+
+		return;
+	}
+
+	std::vector<CB::Move> *move_list = board.gen_move_list();
+	std::cout << "Num Moves: " << move_list->size() << std::endl;
+	while (!move_list->empty()) {
+		CB::Move &move = move_list->back();
+
+		print_move(move);
+		std::cout << std::endl;
+
+		move_list->pop_back();
+	}
+
+	delete move_list;
+}
+
+void print_move(CB::Move &move)
+{
+	std::cout << (char)('a' + move.get_from() % 8)
+		<< (char)('8' - move.get_from() / 8);
+	std::cout << (char)('a' + move.get_to() % 8)
+		<< (char)('8' - move.get_to() / 8);
+}
+
+void handle_go(CB::BoardRep &board, std::stringstream &args)
+{
+	std::string command;
+	args >> command;
+
+	for (int i = 0; i < command.size(); ++i) {
+		command.at(i) = tolower(command.at(i));
+	}
+	
+	if (command == "perft") {
+		int depth;
+		args >> depth;
+		init_perft(board, depth);
+	} else {
+		std::cout << "INVALID ARGUMENTS" << std::endl;
+		return;
+	}
+}
+
+void init_perft(CB::BoardRep &board, int depth)
+{
+	auto start = std::chrono::high_resolution_clock::now();
+
+	std::vector<CB::Move> *move_list;
+	uint64_t nodes = 0;
+
+	move_list = board.gen_move_list();
+	for (int i = 0; i < move_list->size(); ++i) {
+		// TODO: Switch this to c-style access for performance
+		board.make(move_list->at(i));
+		uint64_t result = perft(board, depth - 1);
+		nodes += result;
+		board.unmake();
+
+		std::cout << to_algebraic(move_list->at(i).get_from())
+			<< to_algebraic(move_list->at(i).get_to())
+			<< ": " << result << std::endl;
+
+		// DEBUG: TODO: REMOVE THIS
+		std::this_thread::sleep_for(std::chrono::milliseconds(500));
+	}
+
+	auto end = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+	std::cout << "Perft completed successfully with " << nodes
+		<< " nodes searched " << std::endl
+		<< "after " << duration.count() << " milliseconds." << std::endl;
+}
+
+uint64_t perft(CB::BoardRep &board, int depth)
+{
+	std::vector<CB::Move> *move_list;
+	uint64_t nodes = 0;
+
+	if (depth == 0)
+		return 1ULL;
+
+	move_list = board.gen_move_list();
+	for (int i = 0; i < move_list->size(); ++i) {
+		board.make(move_list->at(i));
+		nodes += perft(board, depth - 1);
+		board.unmake();
+	}
+	return nodes;
+}
+
+std::string to_algebraic(int sq)
+{
+	std::string out;
+	out.push_back('a' + sq % 8);
+	out.push_back('8' - sq / 8);
+	return out;
 }

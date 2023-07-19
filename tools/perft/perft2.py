@@ -4,6 +4,7 @@ import sys
 fen = sys.argv[1]
 depth = int(sys.argv[2])
 
+
 def perft_search(fen, depth):
     if (depth == 0):
         return
@@ -14,11 +15,16 @@ def perft_search(fen, depth):
        echo go perft {depth_stuff}
     }} | ./../stockfish > temp_stockfish_perft_output_0
     '''.format(fen_stuff=fen, depth_stuff=depth)
-    jc_cmd = f'./../../build/bin/perft {depth} {fen} > temp_jchess_perft_output_0'
+    jc_cmd = '''
+    {{
+       echo position fen {fen_stuff}
+       echo go perft {depth_stuff}
+       echo exit
+    }} | ./../../build/bin/cli_debug > temp_jchess_perft_output_0
+    '''.format(fen_stuff=fen, depth_stuff=depth)
 
     os.system(fish_cmd)
     os.system(jc_cmd)
-
 
     print(open('temp_stockfish_perft_output_0', "r").read())
     print(open('temp_jchess_perft_output_0', "r").read())
@@ -32,7 +38,6 @@ def perft_search(fen, depth):
 
     fish = open("temp_stockfish_perft_output", "r")
     jc = open("temp_jchess_perft_output", "r")
-
 
     jc_hash = {}
     fish_hash = {}

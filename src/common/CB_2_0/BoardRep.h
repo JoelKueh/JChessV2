@@ -25,7 +25,7 @@ public:
 	void wipe_board();
 	// Writes the given fen string to the board.
 	// Improper format can cause undefined behavior.
-	void write_fen(char *const fen_str);
+	void write_fen(const char *const fen_str);
 	// Writes board info into an 8x8 character array.
 	void board_to_str(char board_str[8][8]) const;
 
@@ -47,7 +47,7 @@ public:
 private:
 	std::vector<Move> move_history;
 	std::vector<board_state_extra> state_history;
-	int full_move_number;
+	int full_move_number = 0;
 
 	struct {
 		uint64_t color[2];
