@@ -1,25 +1,10 @@
 Stockfish 15.1 by the Stockfish developers (see AUTHORS file)
-b5b4: 446
-a7a6: 438
-c7c6: 507
-d7d6: 644
-e7e6: 713
-f7f6: 461
-g7g6: 507
-h7h6: 461
-a7a5: 507
-c7c5: 531
-d7d5: 668
-e7e5: 714
-f7f5: 485
-g7g5: 508
-h7h5: 507
-b8a6: 461
-b8c6: 530
-g8f6: 530
-g8h6: 484
-c8a6: 438
-c8b7: 620
+c4c5: 92063670
+d2d4: 124002076
+f3d4: 129579089
+b4c5: 87986826
+f1f2: 123078367
+g1h1: 149335005
 
-Nodes searched: 11160
+Nodes searched: 706045033
 

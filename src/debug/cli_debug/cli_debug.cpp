@@ -113,8 +113,6 @@ void parse_position(CB::BoardRep &board, std::stringstream &args)
 		fen.push_back(' ');
 
 		args >> next;
-		for (int i = 0; i < next.size(); ++i)
-			next.at(i) = tolower(next.at(i));
 	}
 
 	const char *fen_c = fen.c_str();
@@ -264,6 +262,8 @@ void init_perft(CB::BoardRep &board, int depth)
 
 	move_list = board.gen_move_list();
 	for (int i = 0; i < move_list->size(); ++i) {
+		std::cout << std::flush;
+
 		// TODO: Switch this to c-style access for performance
 		board.make(move_list->at(i));
 		uint64_t result = perft(board, depth - 1);
@@ -271,11 +271,29 @@ void init_perft(CB::BoardRep &board, int depth)
 		board.unmake();
 
 		std::cout << to_algebraic(move_list->at(i).get_from())
-			<< to_algebraic(move_list->at(i).get_to())
-			<< ": " << result << std::endl;
+			<< to_algebraic(move_list->at(i).get_to());
 
-		// DEBUG: TODO: REMOVE THIS
-		std::this_thread::sleep_for(std::chrono::milliseconds(500));
+		switch (move_list->at(i).get_flags()) {
+			case CB::Move::KNIGHT_PROMO:
+			case CB::Move::KNIGHT_PROMO_CAPTURE:
+				std::cout << 'n';
+				break;
+			case CB::Move::BISHOP_PROMO:
+			case CB::Move::BISHOP_PROMO_CAPTURE:
+				std::cout << 'b';
+				break;
+			case CB::Move::ROOK_PROMO:
+			case CB::Move::ROOK_PROMO_CAPTURE:
+				std::cout << 'r';
+				break;
+			case CB::Move::QUEEN_PROMO:
+			case CB::Move::QUEEN_PROMO_CAPTURE:
+				std::cout << 'q';
+				break;
+			default:
+				break;
+		}
+		std::cout << ": " << result << std::endl;
 	}
 
 	auto end = std::chrono::high_resolution_clock::now();
@@ -284,6 +302,8 @@ void init_perft(CB::BoardRep &board, int depth)
 	std::cout << "Perft completed successfully with " << nodes
 		<< " nodes searched " << std::endl
 		<< "after " << duration.count() << " milliseconds." << std::endl;
+
+	delete move_list;
 }
 
 uint64_t perft(CB::BoardRep &board, int depth)
@@ -291,8 +311,9 @@ uint64_t perft(CB::BoardRep &board, int depth)
 	std::vector<CB::Move> *move_list;
 	uint64_t nodes = 0;
 
-	if (depth == 0)
+	if (depth == 0) {
 		return 1ULL;
+	}
 
 	move_list = board.gen_move_list();
 	for (int i = 0; i < move_list->size(); ++i) {
@@ -300,6 +321,7 @@ uint64_t perft(CB::BoardRep &board, int depth)
 		nodes += perft(board, depth - 1);
 		board.unmake();
 	}
+	delete move_list;
 	return nodes;
 }
 

@@ -22,8 +22,10 @@ const int W_KSC_TARGET = 62;
 const int W_QSC_TARGET = 58;
 constexpr uint64_t BB_W_KSC_TARGET = 1ULL << W_KSC_TARGET;
 constexpr uint64_t BB_W_QSC_TARGET = 1ULL << W_QSC_TARGET;
-const uint64_t W_KSC_OCC_MASK = 0x7000000000000000;
-const uint64_t W_QSC_OCC_MASK = 0x1C00000000000000;
+const uint64_t W_KSC_OCC_MASK = 0x6000000000000000;
+const uint64_t W_QSC_OCC_MASK = 0x0E00000000000000;
+const uint64_t W_KSC_CHK_MASK = 0x7000000000000000;
+const uint64_t W_QSC_CHK_MASK = 0x1C00000000000000;
 
 const int BKING_INIT_SQ = 4;
 const int B_KSC_ROOK = 7;
@@ -32,8 +34,10 @@ const int B_KSC_TARGET = 6;
 const int B_QSC_TARGET = 2;
 constexpr uint64_t BB_B_KSC_TARGET = 1ULL << B_KSC_TARGET;
 constexpr uint64_t BB_B_QSC_TARGET = 1ULL << B_QSC_TARGET;
-const uint64_t B_KSC_OCC_MASK = 0x0000000000000070;
-const uint64_t B_QSC_OCC_MASK = 0x000000000000001C;
+const uint64_t B_KSC_OCC_MASK = 0x0000000000000060;
+const uint64_t B_QSC_OCC_MASK = 0x000000000000000E;
+const uint64_t B_KSC_CHK_MASK = 0x0000000000000070;
+const uint64_t B_QSC_CHK_MASK = 0x000000000000001C;
 
 const int LOWEST_W_ENP_ROW_SQ = 40;
 const int LOWEST_B_ENP_ROW_SQ = 16;
@@ -116,7 +120,7 @@ public:
 private:
 	uint16_t data;
 
-	static const uint16_t INIT_BS = 0b1111;
+	static const uint16_t INIT_BS = 0b0000;
 	static const uint16_t ENP_COL = 0b11100000;
 	static const uint16_t PID_COL = 0b11100000;
 	static const uint16_t ENP_AVAILIABLE = 0b10000;
