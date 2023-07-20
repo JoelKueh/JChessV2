@@ -2,32 +2,6 @@
 #include "move_gen/magics.h"
 #include "tf_table.h"
 
-// DEBUG
-#include <fstream>
-extern std::ofstream debug_out;
-
-#define BYTE_TO_BINARY(byte)  \
-  (byte & 0x01 ? '1' : '0') << \
-  (byte & 0x02 ? '1' : '0') << \
-  (byte & 0x04 ? '1' : '0') << \
-  (byte & 0x08 ? '1' : '0') << \
-  (byte & 0x10 ? '1' : '0') << \
-  (byte & 0x20 ? '1' : '0') << \
-  (byte & 0x40 ? '1' : '0') << \
-  (byte & 0x80 ? '1' : '0')
-
-
-#define U64_TO_BB(file, u64)  \
-  file << BYTE_TO_BINARY(u64) << std::endl \
-	<< BYTE_TO_BINARY(u64 >> 8) << std::endl \
-  	<< BYTE_TO_BINARY(u64 >> 16) << std::endl \
-	<< BYTE_TO_BINARY(u64 >> 24) << std::endl \
-  	<< BYTE_TO_BINARY(u64 >> 32) << std::endl \
-  	<< BYTE_TO_BINARY(u64 >> 40) << std::endl \
-  	<< BYTE_TO_BINARY(u64 >> 48) << std::endl \
-    << BYTE_TO_BINARY(u64 >> 56) << std::endl << std::endl \
-/////////////////////////////
-
 ChessBoard::BoardRep::BoardRep()
 {
 	MoveTables::gen_move_tables();
@@ -39,7 +13,56 @@ ChessBoard::BoardRep::BoardRep()
 	char init_board[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 	// char init_board[] = "2k5/8/8/8/3Q4/8/8/4K3 w KQkq - 0 1";
 	fen_to_board(init_board);
-	update_pins_and_checks();
+}
+
+// TODO: There are some redundant checks here due to the fact that we generate
+// the moves and then use format_mv to turn them into real moves. Shouldn't be
+// too bad, but can be improved.
+//
+// The move is an array of 219 elements because it appears that the maximum
+// number of moves in any position is 218 (one last move to signify the end
+// of the list)
+//
+// The last element in the move list will have its valid bit set to false
+// so the engine knows not to execute it.
+void ChessBoard::BoardRep::gen_move_list(move move_list[219])
+{
+	uint64_t movers = my_board.color[white_turn];
+
+	int i = 0;
+	while (movers) {
+		int from = std::__countr_zero(movers);
+		movers ^= 1ULL << from;
+
+		move_mask mask;
+		get_mv_mask(&mask, from);
+
+		while (mask.push) {
+			int to = std::__countr_zero(mask.push);
+			mask.push ^= 1ULL << to;
+
+			move_list[i] = format_mv(to, from);
+			++i;
+		}
+
+		while (mask.cap) {
+			int to = std::__countr_zero(mask.cap);
+			mask.cap ^= 1ULL << to;
+
+			move_list[i] = format_mv(to, from);
+			++i;
+		}
+
+		while (mask.special) {
+			int to = std::__countr_zero(mask.special);
+			mask.special ^= 1ULL << to;
+			
+			move_list[i] = format_mv(to, from);
+			++i;
+		}
+	}
+
+	move_list[i].valid = false;
 }
 
 ChessBoard::BoardRep::move ChessBoard::BoardRep::format_mv(int to, int from)
@@ -115,7 +138,7 @@ ChessBoard::BoardRep::move ChessBoard::BoardRep::format_mv(int to, int from)
 
 void ChessBoard::BoardRep::make_mv(move &my_move)
 {
-	move_list.push_back(my_move);
+	move_history.push_back(my_move);
 
 	special_moves.enp_availiable = false;
 	int offset = white_turn ? 0 : 2;
@@ -136,6 +159,7 @@ void ChessBoard::BoardRep::make_mv(move &my_move)
 		// Get rid of all castle rights for one player.
 		special_moves.raw &= ~(3ULL << offset);
 		
+		update_pins_and_checks();
 		white_turn = !white_turn;
 		return;
 	}
@@ -156,6 +180,7 @@ void ChessBoard::BoardRep::make_mv(move &my_move)
 		// Get red of all castle rights for one player.
 		special_moves.raw &= ~(3ULL << offset);
 
+		update_pins_and_checks();
 		white_turn = !white_turn;
 		return;
 	}
@@ -167,6 +192,7 @@ void ChessBoard::BoardRep::make_mv(move &my_move)
 		int direction = white_turn ? 8 : -8;
 		delete_piece(my_move.to + direction, piece_id::pawn, !white_turn);
 
+		update_pins_and_checks();
 		white_turn = !white_turn;
 		return;
 	}
@@ -180,6 +206,7 @@ void ChessBoard::BoardRep::make_mv(move &my_move)
 		special_moves.enp_col = my_move.enp_created_col;
 
 		white_turn = !white_turn;
+		update_pins_and_checks();
 		return;
 	}
 
@@ -190,14 +217,15 @@ void ChessBoard::BoardRep::make_mv(move &my_move)
 		special_moves.raw &= ~(1ULL << (1 + offset));
 
 	white_turn = !white_turn;
+	update_pins_and_checks();
 }
 
 void ChessBoard::BoardRep::unmake_mv()
 {
-	if (move_list.size() == 0)
+	if (move_history.size() == 0)
 		return;
 
-	move my_move = move_list.back();
+	move my_move = move_history.back();
 
 	white_turn = !white_turn;
 	int offset = white_turn ? 0 : 2;
@@ -227,7 +255,8 @@ void ChessBoard::BoardRep::unmake_mv()
 		write_piece(king_from, piece_id::king, white_turn);
 		write_piece(rook_from, piece_id::rook, white_turn);
 
-		move_list.erase(move_list.end());
+		move_history.erase(move_history.end());
+		update_pins_and_checks();
 		return;
 	}
 
@@ -244,7 +273,8 @@ void ChessBoard::BoardRep::unmake_mv()
 		write_piece(king_from, piece_id::king, white_turn);
 		write_piece(rook_from, piece_id::rook, white_turn);
 
-		move_list.erase(move_list.end());
+		move_history.erase(move_history.end());
+		update_pins_and_checks();
 		return;
 	}
 
@@ -255,7 +285,8 @@ void ChessBoard::BoardRep::unmake_mv()
 		int direction = white_turn ? 8 : -8;
 		write_piece(my_move.to + direction, piece_id::pawn, !white_turn);
 
-		move_list.erase(move_list.end());
+		move_history.erase(move_history.end());
+		update_pins_and_checks();
 		return;
 	}
 
@@ -267,7 +298,8 @@ void ChessBoard::BoardRep::unmake_mv()
 		special_moves.enp_availiable = false;
 	}
 
-	move_list.erase(move_list.end());
+	move_history.erase(move_history.end());
+	update_pins_and_checks();
 }
 
 int ChessBoard::BoardRep::get_checks(bool is_white)
@@ -302,14 +334,7 @@ void ChessBoard::BoardRep::check_adjust(int sq, uint64_t *moves, bool is_white)
 	int king_sq = find_king(is_white);
 	int checkr_sq = std::__countr_zero(checkers[is_white]);
 	uint64_t blocks = Fields::tf_table[checkr_sq][king_sq];
-
-	debug_out << "TF_TABLE" << std::endl;
-	U64_TO_BB(debug_out, Fields::tf_table[sq][king_sq]);
-
-	// DEBUG
-	debug_out << "BLOCKS" << std::endl;
-	U64_TO_BB(debug_out, blocks);
-	debug_out << std::endl << std::endl;
+	blocks |= checkers[is_white];
 
 	*moves &= blocks;
 }
@@ -326,8 +351,8 @@ void ChessBoard::BoardRep::king_mv_adjust(int sq, uint64_t *moves, bool is_white
 {
 	uint64_t to_parse = *moves;
 	uint64_t board = my_board.occupied & ~(1ULL << find_king(is_white));
-	to_parse &= ~board;
-	*moves &= ~board;
+	to_parse &= ~my_board.color[is_white];
+	*moves &= ~my_board.color[is_white];
 
 	while (to_parse)
 	{
@@ -402,6 +427,10 @@ void ChessBoard::BoardRep::get_mv_mask(move_mask *mask, int sq)
 	if (is_white != white_turn)
 		return;
 
+	// Handling pawns separately as they are different on many fronts
+	if (manip & my_board.pawn[is_white])
+		return get_pawn_mv_mask(mask, sq, is_white);
+
 	// Pseudo Moves contains both push and cap masks, the push mask
 	// will be manipulated and then AND'ed with the color boards to
 	// create thecap mask.
@@ -420,31 +449,34 @@ void ChessBoard::BoardRep::get_mv_mask(move_mask *mask, int sq)
 	// to have them in their own section to save some computational power
 	// later.
 	mask->special = get_legal_castle_mask(sq, is_white);
-	
-	// Handle extra moves for pawn
-	if (manip & my_board.pawn[is_white])
-	{
-		mask->cap = atk_pawn(is_white, sq) & my_board.color[!is_white];
+}
 
-		// This is a bit hacky, but should make double pawn
-		// moves fairly fast.
-		// It handles pins by assuming that the double move will be
-		// blocked if and only if the single move was blocked.
-		int dir = is_white ? -1 : 1;
-		int row = is_white ? 6 : 1;
-		if (!(1ULL << (sq + dir * 16) & my_board.occupied)
-				&& (1ULL << (sq + dir * 8) & mask->push)
-				&& (sq / 8 == row)) 
-			mask->special = 1ULL << (sq + dir * 16);
+void ChessBoard::BoardRep::get_pawn_mv_mask(move_mask *mask, int sq, bool is_white)
+{
+	mask->push = mv_pawn(is_white, sq);
+	mask->push |= atk_pawn(is_white, sq) & my_board.color[!is_white];
 
-		mask->special |= get_legal_enp_mask(sq, is_white);
+	// This is a bit hacky, but should make double pawn
+	// moves fairly fast.
+	// It handles pins by assuming that the double move will be
+	// blocked if and only if the single move was blocked.
+	int dir = is_white ? -1 : 1;
+	int row = is_white ? 6 : 1;
+	if (!(1ULL << (sq + dir * 16) & my_board.occupied)
+			&& (1ULL << (sq + dir * 8) & mask->push)
+			&& (sq / 8 == row)) {
+		mask->special = 1ULL << (sq + dir * 16);
+		mask->push |= 1ULL << (sq + dir * 16);
 	}
 
-	// DEBUG
-	debug_out << special_moves.raw << std::endl;
+	pin_adjust(sq, &(mask->push));
+	check_adjust(sq, &(mask->push));
+	mask->special &= mask->push;
+	mask->push ^= mask->special;
 
-	// DEBUG?
-	update_pins_and_checks();
+	mask->cap = mask->push & my_board.color[!is_white];
+	mask->push ^= mask->cap;
+	mask->special |= get_legal_enp_mask(sq, is_white);
 }
 
 inline void ChessBoard::BoardRep::update_pins_and_checks()
@@ -473,8 +505,10 @@ inline void ChessBoard::BoardRep::update_pins_and_checks(bool is_white)
 	bchkrs &= (my_board.queen[!is_white] ^ my_board.bishop[!is_white]);
 	uint64_t nchkrs = MoveTables::read_natk(king_sq);
 	nchkrs &= my_board.knight[!is_white];
+	uint64_t pchkrs = atk_pawn(is_white, king_sq);
+	pchkrs &= my_board.pawn[!is_white];
 
-	this->checkers[is_white] = rchkrs | bchkrs | nchkrs;
+	this->checkers[is_white] = rchkrs | bchkrs | nchkrs | pchkrs;
 
 	// Hanlde Pins
 	board ^= pinned & my_board.color[is_white];
@@ -491,6 +525,7 @@ inline void ChessBoard::BoardRep::update_pins_and_checks(bool is_white)
 		int sq = std::__countr_zero(ratkrs);
 		ratkrs ^= 1ULL << sq;
 		pins[is_white][i] = ChessBoard::Fields::tf_table[sq][king_sq];
+		pins[is_white][i] ^= 1ULL << king_sq;
 		pins[is_white][8] ^= pins[is_white][i];
 
 		++i;
@@ -500,6 +535,7 @@ inline void ChessBoard::BoardRep::update_pins_and_checks(bool is_white)
 		int sq = std::__countr_zero(batkrs);
 		batkrs ^= 1ULL << sq;
 		pins[is_white][i] = ChessBoard::Fields::tf_table[sq][king_sq];
+		pins[is_white][i] ^= 1ULL << king_sq;
 		pins[is_white][8] ^= pins[is_white][i];
 
 		++i;
@@ -729,21 +765,16 @@ uint64_t ChessBoard::BoardRep::get_legal_castle_mask(int sq, bool is_white)
 {
 	uint64_t output = 0;
 
-	// DEBUG
-	debug_out << (uint32_t)special_moves.raw  << ' ' << sq << std::endl;
-
 	// If we are on the king square AND have either of our casling rights
 	// Then we proceed to check for castles
 	if (!(sq == (is_white ? 60 : 4)
 		&& special_moves.raw & (3 << (0 + (is_white ? 0 : 2)))))
 	{
-		debug_out << "Failed Initial Check\n";
 		return output;
 	}
 
 	// King side check
 	output |= can_ksk(is_white) * (is_white ? WHITE_KSK : BLACK_KSK);
-	debug_out << "CAN KSK\n";
 	
 	// Queen side check
 	output |= can_qsk(is_white) * (is_white ? WHITE_QSK : BLACK_QSK);
@@ -903,11 +934,11 @@ char ChessBoard::BoardRep::up_if_white(char piece, bool is_white)
 	return piece;
 }
 
-void ChessBoard::BoardRep::fen_to_board(char *fen_str)
+void ChessBoard::BoardRep::fen_to_board(const char *fen_str)
 {
 	wipe_board();
 
-	char *char_pos;
+	const char *char_pos;
 	char_pos = read_fen_main(fen_str);
 	
 	white_turn = false;
@@ -923,6 +954,8 @@ void ChessBoard::BoardRep::fen_to_board(char *fen_str)
 	halfmove_clock = *char_pos - '0';
 	char_pos += 2;
 	fullmove_number = *char_pos - '0';
+
+	update_pins_and_checks();
 }
 
 void ChessBoard::BoardRep::wipe_board()
@@ -948,9 +981,9 @@ void ChessBoard::BoardRep::wipe_board()
 	special_moves.raw = 0;
 }
 
-char *ChessBoard::BoardRep::read_fen_main(char *char_pos, int row, int col)
+const char *ChessBoard::BoardRep::read_fen_main(const char *char_pos, int row, int col)
 {
-	char this_char = *char_pos;
+	const char this_char = *char_pos;
 	if (isdigit(this_char))
 	{
 		col += this_char - '0';
@@ -973,7 +1006,7 @@ char *ChessBoard::BoardRep::read_fen_main(char *char_pos, int row, int col)
 	return read_fen_main(char_pos + 1, row, col);
 }
 
-char *ChessBoard::BoardRep::read_fen_castle(char *castle_str)
+const char *ChessBoard::BoardRep::read_fen_castle(const char *castle_str)
 {
 	switch (*castle_str)
 	{
@@ -988,7 +1021,7 @@ char *ChessBoard::BoardRep::read_fen_castle(char *castle_str)
 	return read_fen_castle(castle_str + 1);
 }
 
-char *ChessBoard::BoardRep::read_fen_enp(char *enp_str)
+const char *ChessBoard::BoardRep::read_fen_enp(const char *enp_str)
 {
 	if (*enp_str == '-')
 	{
