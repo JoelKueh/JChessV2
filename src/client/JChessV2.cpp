@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <string>
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -18,6 +19,7 @@ std::ofstream debug_out;
 
 Scene *my_scene;
 options my_options;
+std::string exe_dir;
 
 // TERMINAL GLOBALS
 struct winsize terminal;
@@ -34,6 +36,11 @@ GLFWwindow* window;
 */
 void parse_args(int argc, char **argv)
 {
+	// HACKY CODE TO MAKE SURE THAT RESOURCES ARE ALWAYS FOUND
+	exe_dir = argv[0];
+	while (exe_dir.back() != '/')
+		exe_dir.pop_back();
+
 	for (int i = 0; i < argc; i++)
 	{
 		if(strcmp(*(argv + i), "nouni") == 0)

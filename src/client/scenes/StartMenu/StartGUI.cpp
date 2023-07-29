@@ -2,20 +2,10 @@
 #include <GLFW/glfw3.h>
 
 extern GLFWwindow* window;
+extern std::string exe_dir;
 
-const char *vertex_shader_source = "#version 460 core\n"
-	"layout (location = 0) in vec3 aPos;\n"
-	"void main()\n"
-	"{\n"
-	"	gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-	"}\0";
-
-const char *fragment_shader_source = "#version 460 core\n"
-	"out vec4 FragColor;\n"
-	"void main()\n"
-	"{\n"
-	"	FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-	"}\0";
+const char* vert_path = "resources/client/StartMenu/vertex_shader.glsl";
+const char* frag_path = "resources/client/StartMenu/fragment_shader.glsl";
 
 StartGUI::StartGUI()
 {
@@ -23,8 +13,13 @@ StartGUI::StartGUI()
 	char infoLog[512];
 
 	// Compile the vertex shader
+	std::string vert_shader_src;
+	std::string vert_path_full = exe_dir + vert_path;
+	read_file(vert_path_full.c_str(), vert_shader_src);
+	const char* vert_shader_cstr = vert_shader_src.c_str();
+
 	unsigned int vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertex_shader, 1, &vertex_shader_source, NULL);
+	glShaderSource(vertex_shader, 1, &vert_shader_cstr, NULL);
 	glCompileShader(vertex_shader);
 	glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
 	if (!success) {
@@ -34,8 +29,13 @@ StartGUI::StartGUI()
 	}
 
 	// Compile the fragment shader
+	std::string frag_shader_src;
+	std::string frag_path_full = exe_dir + frag_path;
+	read_file(frag_path_full.c_str(), frag_shader_src);
+	const char* frag_shader_cstr = frag_shader_src.c_str();
+	
 	unsigned int fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragment_shader, 1, &fragment_shader_source, NULL);
+	glShaderSource(fragment_shader, 1, &frag_shader_cstr, NULL);
 	glCompileShader(fragment_shader);
 	glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
 	if (!success) {

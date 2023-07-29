@@ -13,7 +13,7 @@ StartCLI::StartCLI()
 	my_menu.start_y = scr_y / 2 - my_menu.height / 2;
 }
 
-int StartCLI::handle_nav()
+int StartCLI::update()
 {
 	refresh();
 	

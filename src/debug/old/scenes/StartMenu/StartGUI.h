@@ -15,7 +15,7 @@ class StartGUI : public StartUI
 
 public:
 	StartGUI();
-	virtual int handle_nav();
+	virtual int update();
 	virtual void init_menu();
 	virtual std::string *get_time_str();
 	virtual ~StartGUI();

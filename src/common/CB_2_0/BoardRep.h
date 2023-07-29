@@ -42,6 +42,8 @@ public:
 	// Takes a to-from combination and verifies it before returning a move
 	Move format_mv(unsigned int to, unsigned int from, pid promo_piece);
 
+	bool is_white_turn() { return white_turn; }
+
 	~BoardRep() = default;
 
 private:

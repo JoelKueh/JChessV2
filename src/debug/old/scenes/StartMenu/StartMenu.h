@@ -13,9 +13,11 @@
 extern options my_options;
 
 /**
- * This class is a derivation of scene. This allows for the main function to call the update loop on any scene and not worry about the
- * varyinig functionality of the contents of that class. This class does not have much content because almost all of the functionality
- * of the menu system is handled in the UI, this is however, not the case for the Game scene.
+ * This class is a derivation of scene. This allows for the main function to
+ * call the update loop on any scene and not worry about the varyinig
+ * functionality of the contents of that class. This class does not have much 
+ * content because almost all of the functionality of the menu system is
+ * handled in the UI, this is however, not the case for the Game scene.
 */
 class StartMenu : public Scene
 {
@@ -41,7 +43,6 @@ public:
 
 	/**
 	 * Creates the successor to this scene.
-	 * This object will be destroyed soon after this function is called from main.
 	*/
 	virtual Scene* create_new();
 

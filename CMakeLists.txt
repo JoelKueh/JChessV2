@@ -61,6 +61,26 @@ target_link_libraries(cli_debug cb_2_0)
 add_executable(perft src/debug/perft/perft.cpp)
 target_link_libraries(perft chessboard)
 
+# Build client executable
+add_executable(client src/client/JChessV2.cpp include/glad.c
+	src/client/gl_macros/gl_macros.cpp
+	src/client/scenes/Scene.cpp
+	src/client/scenes/Game/Game.cpp
+	src/client/scenes/Game/Move.cpp
+	src/client/scenes/Game/UI/GameCLI.cpp
+	src/client/scenes/Game/UI/GameUI.cpp
+	src/client/scenes/Game/UI/GameGUI.cpp
+	src/client/scenes/Game/Player/Player.cpp
+	src/client/scenes/Game/Player/PlayerAI.cpp
+	src/client/scenes/Game/Player/PlayerLocal.cpp
+	src/client/scenes/Game/Player/PlayerRemote.cpp
+	src/client/scenes/Game/Player/PlayerTheFish.cpp
+	src/client/scenes/StartMenu/StartMenu.cpp
+	src/client/scenes/StartMenu/StartUI.cpp
+	src/client/scenes/StartMenu/StartCLI.cpp
+	src/client/scenes/StartMenu/StartGUI.cpp)
+target_link_libraries(client cb_2_0 ${NCURSES_LIBRARIES} glfw)
+
 # Set output path
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/lib)

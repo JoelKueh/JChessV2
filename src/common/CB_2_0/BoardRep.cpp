@@ -608,6 +608,9 @@ void CB::BoardRep::append_promos(std::vector<Move> *move_list)
 
 void CB::BoardRep::get_mv_set(move_set *mask, int sq)
 {
+	if (sq_is_white(sq) & !white_turn)
+		return;
+
 	int pid = get_pid(sq);
 
 	if (!tables_valid)
@@ -618,10 +621,16 @@ void CB::BoardRep::get_mv_set(move_set *mask, int sq)
 	mask->push ^= mask->cap;
 
 	if (pid == PAWN) {
+		uint64_t legal_mask = get_pin_mask(sq);
+		legal_mask &= check_blocks;
+
 		mask->special = get_pawn_sp_mask(sq);
 		mask->promo = (mask->push | mask->cap) & (white_turn ? BB_TOP_ROW : BB_BOTTOM_ROW);
 		mask->push &= ~mask->promo;
 		mask->cap &= ~mask->promo;
+
+		mask->special &= legal_mask;
+		mask->promo &= legal_mask;
 	} else if (pid == KING) {
 		mask->special = get_castle_mask();
 		mask->promo = 0;
