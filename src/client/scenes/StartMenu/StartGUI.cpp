@@ -1,65 +1,76 @@
 #include "StartGUI.h"
 #include <GLFW/glfw3.h>
 
+// DEBUG
+#include <math.h>
+
 extern GLFWwindow* window;
 extern std::string exe_dir;
 
-const char* vert_path = "resources/client/StartMenu/vertex_shader.glsl";
-const char* frag_path = "resources/client/StartMenu/fragment_shader.glsl";
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(1.0, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+float lastX, lastY;
+float yaw, pitch;
+float fov;
+
+bool firstMouse = true;
+
+void mouse_callback(GLFWwindow *window, double xpos, double ypos)
+{
+	if (firstMouse)
+	{
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
+	}
+
+	float xoffset = xpos - lastX;
+	float yoffset = ypos - lastY;
+	lastX = xpos;
+	lastY = ypos;
+
+	const float sensitivity = 0.05f;
+	xoffset *= sensitivity;
+	yoffset *= sensitivity;
+
+	yaw += xoffset;
+	pitch -= yoffset;
+
+	if (pitch > 89.0f) pitch = 89.0f;
+	if (pitch < -89.0f) pitch = -89.0f;
+
+	glm::vec3 direction;
+	direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	direction.y = sin(glm::radians(pitch));
+	direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	cameraFront = glm::normalize(direction);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	fov -= (float)yoffset;
+	if (fov < 1.0f) fov = 1.0f;
+	if (fov > 45.0f) fov = 45.0f;
+}
 
 StartGUI::StartGUI()
 {
+	// Set the cursor to be disabled
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetScrollCallback(window, scroll_callback);
+
 	int success;
 	char infoLog[512];
 
-	// Compile the vertex shader
-	std::string vert_shader_src;
-	std::string vert_path_full = exe_dir + vert_path;
-	read_file(vert_path_full.c_str(), vert_shader_src);
-	const char* vert_shader_cstr = vert_shader_src.c_str();
+	const std::string resource_root = exe_dir
+		+ "resources/client/StartMenu/";
+	const std::string vert_path = resource_root + "vertex_shader.glsl";
+	const std::string frag_path = resource_root + "fragment_shader.glsl";
 
-	unsigned int vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertex_shader, 1, &vert_shader_cstr, NULL);
-	glCompileShader(vertex_shader);
-	glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
-	if (!success) {
-		glGetShaderInfoLog(vertex_shader, 512, NULL, infoLog);
-		std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
-			<< infoLog;
-	}
-
-	// Compile the fragment shader
-	std::string frag_shader_src;
-	std::string frag_path_full = exe_dir + frag_path;
-	read_file(frag_path_full.c_str(), frag_shader_src);
-	const char* frag_shader_cstr = frag_shader_src.c_str();
-	
-	unsigned int fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragment_shader, 1, &frag_shader_cstr, NULL);
-	glCompileShader(fragment_shader);
-	glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
-	if (!success) {
-		glGetShaderInfoLog(fragment_shader, 512, NULL, infoLog);
-		std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAIED\n"
-			<< infoLog;
-	}
-
-	// Link the vertex and fragment shaders together into
-	// one shader program
-	shader_program = glCreateProgram();
-	glAttachShader(shader_program, vertex_shader);
-	glAttachShader(shader_program, fragment_shader);
-	glLinkProgram(shader_program);
-	glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
-	if(!success) {
-		glGetProgramInfoLog(shader_program, 512, NULL, infoLog);
-		std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
-			<< infoLog;
-	}
-
-	// Delete the old shaders as they are already in the program
-	glDeleteShader(vertex_shader);
-	glDeleteShader(fragment_shader);
+	default_shader = new Shader(vert_path.c_str(), frag_path.c_str());
 
 	// Vertex Buffer Object
 	glGenVertexArrays(1, &VAO);
@@ -74,32 +85,115 @@ StartGUI::StartGUI()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices),
 			indices, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+	// Describe how our vertex buffer is packed
+	// 	Position Packing:
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
 			(void*)0);
 	glEnableVertexAttribArray(0);
+	//	Texture Packing:
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+			(void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
 
-	// DEBUG:
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	// TEXTURE TEST:
+	// 1. JPG to byte array
+	std::string img_path = resource_root + "container.jpg";
+	int width, height, nrChannels;
+	unsigned char *data = stbi_load(img_path.c_str(), &width, &height,
+			&nrChannels, 0);
+
+	// 2. Byte array to buffer
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
+			GL_UNSIGNED_BYTE, data);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	// 3. Free byte array
+	stbi_image_free(data);
+
+	img_path = resource_root + "awesomeface.png";
+	stbi_set_flip_vertically_on_load(true);
+	data = stbi_load(img_path.c_str(), &width, &height, &nrChannels, 0);
+
+	glGenTextures(1, &texture_2);
+	glBindTexture(GL_TEXTURE_2D, texture_2);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA,
+			GL_UNSIGNED_BYTE, data);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	stbi_image_free(data);
+
+	default_shader->use();
+	default_shader->set_int("texture1", 0);
+	default_shader->set_int("texture2", 1);
+
+	// Enable Z-Buffer Test
+	glEnable(GL_DEPTH_TEST);
 }
 
 void StartGUI::draw()
 {
 	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	glUseProgram(shader_program);
+	// Set the shader program and start customizing it
+	default_shader->use();
+
+	glm::mat4 view = glm::mat4(1.0f);
+	const float radius = 10.0f;
+	view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+	glm::mat4 projection;
+	projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f,
+			0.1f, 100.0f);
+	default_shader->set_mat4("view", view);
+	default_shader->set_mat4("projection", projection);
+	
+	// Binding texture
+	// Set the texture location we want to bind to
+	glActiveTexture(GL_TEXTURE0);
+	// Bind to that location
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, texture_2);
+
 	glBindVertexArray(VAO);
-	glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+	for (unsigned int i = 0; i < 10; ++i) {
+		glm::mat4 model = glm::mat4(1.0f);
+		model = glm::translate(model, cubePositions[i]);
+		float angle = 20.0f * i;
+		model = glm::rotate(model, glm::radians(angle),
+				glm::vec3(1.0f, 0.3f, 0.5f));
+		default_shader->set_mat4("model", model);
+
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+	}
 
 	glfwSwapBuffers(window);
 }
 
 int StartGUI::update()
 {
+	float currentFrame = glfwGetTime();
+	deltaTime = currentFrame - lastFrame;
+	lastFrame = currentFrame;
+	float cameraSpeed = 6.0f * deltaTime;
+
 	UI_STATE state = U_OK;
 
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		cameraPos += cameraSpeed * cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		cameraPos -= cameraSpeed * cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		cameraPos -= glm::cross(cameraFront, cameraUp) * cameraSpeed;
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		cameraPos += glm::cross(cameraFront, cameraUp) * cameraSpeed;
+	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+		cameraPos += cameraSpeed * cameraUp;
+	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+		cameraPos -= cameraSpeed * cameraUp;
 
 	draw();
 	glfwPollEvents();
@@ -144,5 +238,6 @@ StartGUI::~StartGUI()
 {
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO);
-	glDeleteProgram(shader_program);
+
+	delete default_shader;
 }

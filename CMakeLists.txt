@@ -63,6 +63,7 @@ target_link_libraries(perft chessboard)
 
 # Build client executable
 add_executable(client src/client/JChessV2.cpp include/glad.c
+	src/client/gl_macros/stb_image.cpp
 	src/client/gl_macros/gl_macros.cpp
 	src/client/scenes/Scene.cpp
 	src/client/scenes/Game/Game.cpp
