@@ -9,6 +9,16 @@ GLFW / OpenGL
    For me, installing glfw-devel did the trick.
 2. Once I learn how to use CMake, I might find a better way to do this.
 
+GLM
+===
+
+1. OpenGL Mathematics Library (Likely packaged somewhere)
+
+Assimp
+======
+
+1. OpenGL Model Loading Library (Licely packaged somewhere)
+
 NCurses
 =======
 
