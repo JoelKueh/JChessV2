@@ -8,6 +8,7 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include "../../include/glad/glad.h"
+#include "gl_macros/stb_image.h"
 
 #include "scenes/StartMenu/StartMenu.h"
 #include "Global.h"
@@ -28,6 +29,27 @@ int scr_y;
 
 // GUI GLOBALS
 GLFWwindow* window;
+
+Model *chess_set[2][6];
+Model *board;
+std::string piece_fname[2][6] = {
+	{
+		"Black_Pawn.dae",
+		"Black_Knight.dae",
+		"Black_Bishop.dae",
+		"Black_Rook.dae",
+		"Black_Queen.dae",
+		"Black_King.dae"
+	},
+	{
+		"White_Pawn.dae",
+		"White_Knight.dae",
+		"White_Bishop.dae",
+		"White_Rook.dae",
+		"White_Queen.dae",
+		"White_King.dae"
+	}
+};
 
 /**
  * Loops through all of the arguments passed into the program
@@ -122,6 +144,24 @@ int init_gui()
 
 	// Set the viewport
 	glViewport(0, 0, 800, 600); 
+	stbi_set_flip_vertically_on_load(true);
+	glEnable(GL_DEPTH_TEST);
+
+	glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
+	glfwSwapBuffers(window);
+
+	// Load Chess Board Models
+	for (int i = 0; i < 2; ++i) {
+		for (int j = 0; j < 6; ++j) {
+			std::string path = exe_dir
+				+ "resources/client/chess_set/Models/"
+				+ piece_fname[i][j];
+			chess_set[i][j] = new Model(path.c_str());
+		}
+	}
+	board = new Model((exe_dir
+			+ "resources/client/chess_set/"
+			+ "Models/Board.dae").c_str());
 
 	return 1;
 }
@@ -154,6 +194,13 @@ int cleanup_terminal()
 */
 int cleanup_gui()
 {
+	// Destroy Models
+	for (int i = 0; i < 2; ++i) {
+		for (int j = 0; j < 6; ++j) {
+			delete chess_set[i][j];
+		}
+	};
+
 	glfwDestroyWindow(window);
 	glfwTerminate();
 	return 1;

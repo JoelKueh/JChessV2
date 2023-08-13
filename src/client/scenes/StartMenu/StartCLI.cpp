@@ -4,6 +4,15 @@
 #include <fstream>
 extern std::ofstream debug_out;
 
+StartCLI *StartCLI::inst = nullptr;
+
+StartCLI *StartCLI::get_inst()
+{
+	if (!inst)
+		inst = new StartCLI();
+	return inst;
+}
+
 StartCLI::StartCLI()
 {
 	my_menu.width = 50;
@@ -176,4 +185,6 @@ StartCLI::~StartCLI()
 	werase(menu_win);
 	wrefresh(menu_win);
 	delwin(menu_win);
+
+	inst = nullptr;
 }

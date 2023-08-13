@@ -11,6 +11,8 @@
 class StartUI
 {
 protected:
+	StartUI();
+
 	virtual void update_selected_row() = 0;
 	virtual void switch_selected_row(int row_change) = 0;
 	virtual void switch_selected_choice(int choice_change) = 0;
@@ -55,8 +57,6 @@ public:
 	};
 	int selected_choices[3] = { 0, 0, 0 };
 	int selected_row = 0;
-
-	StartUI();
 
 	/**
 	 * Called directly from update.

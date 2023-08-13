@@ -9,11 +9,11 @@ StartMenu::StartMenu()
 {
 	if (my_options.gui)
 	{
-		UI = new StartGUI();
+		UI = StartGUI::get_inst();
 	}
 	else
 	{
-		UI = new StartCLI();
+		UI = StartCLI::get_inst();
 	}
 }
 

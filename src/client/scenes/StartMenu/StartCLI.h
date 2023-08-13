@@ -16,6 +16,8 @@ extern int scr_y;
 class StartCLI : public StartUI
 {
 private:
+	StartCLI();
+
 	WINDOW *menu_win;
 	bool highlight = false;
 
@@ -24,8 +26,10 @@ private:
 	virtual void switch_selected_choice(int choice_change);
 	virtual int handle_enter();
 
+	static StartCLI *inst;
 public:
-	StartCLI();
+	static StartCLI* get_inst();
+	
 	virtual void draw();
 	virtual int update();
 	virtual void init_menu();

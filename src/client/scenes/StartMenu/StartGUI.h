@@ -12,6 +12,8 @@
 #include "../../gl_macros/gl_macros.h"
 #include "../../gl_macros/shader.h"
 #include "../../gl_macros/stb_image.h"
+#include "../../gl_macros/model.h"
+#include "../../gl_macros/camera.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -32,19 +34,40 @@
 // two GUI's to be run at once, but that would require passing initialization
 // data in as a void* because this is virtual, and I don't feel like doing
 // that at the moment.
-#include <binders.h>
+#include <functional>
 
 class StartGUI : public StartUI
 {
 private:
+	StartGUI();
+
 	virtual void update_selected_row();
 	virtual void switch_selected_row(int row_change);
 	virtual void switch_selected_choice(int choice_change);
 	virtual int handle_enter();
 	void draw();
 
+	static void mouse_callback(GLFWwindow *window, double xpos, double ypos);
+	static void scroll_callback(GLFWwindow *window,
+			double xoffset, double yoffset);
+	static void window_focus_callback(GLFWwindow *window, int focused);
+
+	Shader *shader;
+	Camera *camera;
+
+	unsigned int piece_tex[2];
+	unsigned int board_tex;
+
+	float deltaTime, lastFrame;
+
+	bool first_mouse = true;
+	bool first_frame = true;
+	float last_x, last_y;
+
+	static StartGUI* inst;
 public:
-	StartGUI();
+	static StartGUI* get_inst();
+
 	virtual int update();
 	virtual void init_menu();
 	virtual std::string *get_time_str();
