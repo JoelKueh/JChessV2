@@ -8,6 +8,8 @@ std::string resource_root;
 
 extern Model *chess_set[2][6];
 extern Model *board;
+extern Shader *board_shdr;
+extern Shader *piece_shdr;
 
 StartGUI *StartGUI::inst = nullptr;
 
@@ -67,13 +69,6 @@ StartGUI::StartGUI()
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
 	glfwSetWindowFocusCallback(window, window_focus_callback);
-
-	piece_tex[0] = tex_from_file("chess_set/textures/white_albedo.jpg",
-			resource_root.c_str(), false);
-	piece_tex[1] = tex_from_file("chess_set/textures/black_albedo.jpg",
-			resource_root.c_str(), false);
-	board_tex = tex_from_file("chess_set/textures/doska_albedo.jpg",
-			resource_root.c_str(), false);
 }
 
 int StartGUI::update()
@@ -123,6 +118,9 @@ void StartGUI::draw()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	shader->use();
+
+	char board_char[8][8];
+	board_pieces.board_to_str(board_char);
 	
 	int width, height;
 	glfwGetWindowSize(window, &width, &height);
@@ -132,23 +130,55 @@ void StartGUI::draw()
         shader->set_mat4("projection", projection);
         shader->set_mat4("view", view);
 
-        // render the loaded model
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
-        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
-        shader->set_mat4("model", model);
-
-	board->draw(*shader);
-	for (int i = 0; i < 2; ++i) {
-		for (int j = 0; j < 6; ++j) {
-			model = glm::translate(model, glm::vec3(5.0f, 0.0f, 0.0f));
-        		shader->set_mat4("model", model);
-			chess_set[i][j]->draw(*shader);
+        glm::mat4 init = glm::mat4(1.0f);
+	glm::mat4 model;
+	chess_set[0][0]->draw(*shader);
+	for (int row = 0; row < 8; ++row) {
+		for (int col = 0; col < 8; ++col) {
+			const float width = 1.5f;
+			float x = col * width - 5.25f;
+			float y = row * width - 5.25f;
+			model = glm::translate(init, glm::vec3(x, 0.0f, y));
+			model = glm::rotate(model, glm::radians(180.0f),
+					glm::vec3(0.0f, 1.0f, 0.0f));
+			shader->set_mat4("model", model);
+			draw_piece(board_char[row][col]);
 		}
 	}
+
+	board_shdr->use();
+	board_shdr->set_mat4("projection", projection);
+	board_shdr->set_mat4("view", view);
+	model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+	board_shdr->set_mat4("model", model);
+	board->draw(*board_shdr);
 	
         glfwSwapBuffers(window);
         glfwPollEvents();
+}
+
+void StartGUI::draw_piece(char piece)
+{
+	Model *model;
+	switch (piece) {
+		case 'P': model = chess_set[1][0]; break;
+		case 'N': model = chess_set[1][1]; break;
+		case 'B': model = chess_set[1][2]; break;
+		case 'R': model = chess_set[1][3]; break;
+		case 'Q': model = chess_set[1][4]; break;
+		case 'K': model = chess_set[1][5]; break;
+		case 'p': model = chess_set[0][0]; break;
+		case 'n': model = chess_set[0][1]; break;
+		case 'b': model = chess_set[0][2]; break;
+		case 'r': model = chess_set[0][3]; break;
+		case 'q': model = chess_set[0][4]; break;
+		case 'k': model = chess_set[0][5]; break;
+		default: return;
+	}
+
+	model->draw(*shader);
 }
 
 void StartGUI::init_menu()
@@ -185,10 +215,6 @@ StartGUI::~StartGUI()
 {
 	delete shader;
 	delete camera;
-
-	glDeleteTextures(1, &board_tex);
-	glDeleteTextures(1, &piece_tex[0]);
-	glDeleteTextures(1, &piece_tex[1]);
 
 	inst = nullptr;
 }

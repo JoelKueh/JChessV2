@@ -2,6 +2,7 @@
 #define H_START_GUI
 
 #include "StartUI.h"
+#include "../../../common/CB_2_0/BoardRep.h"
 
 // Window manager and OpenGL function loader
 #define GLFW_INCLUDE_NONE
@@ -46,6 +47,7 @@ private:
 	virtual void switch_selected_choice(int choice_change);
 	virtual int handle_enter();
 	void draw();
+	void draw_piece(char piece);
 
 	static void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 	static void scroll_callback(GLFWwindow *window,
@@ -55,9 +57,6 @@ private:
 	Shader *shader;
 	Camera *camera;
 
-	unsigned int piece_tex[2];
-	unsigned int board_tex;
-
 	float deltaTime, lastFrame;
 
 	bool first_mouse = true;
@@ -65,6 +64,8 @@ private:
 	float last_x, last_y;
 
 	static StartGUI* inst;
+
+	CB::BoardRep board_pieces;
 public:
 	static StartGUI* get_inst();
 

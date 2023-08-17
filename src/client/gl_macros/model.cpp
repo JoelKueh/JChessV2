@@ -130,11 +130,14 @@ Mesh Model::process_mesh(const aiMesh *mesh, const aiScene *scene)
 		aiFace face = mesh->mFaces[i];
 		for(unsigned int j = 0; j < face.mNumIndices; j++)
 			indices.push_back(face.mIndices[j]);
-	}  
-	
+	}
+
 	if (mesh->mMaterialIndex >= 0)
 	{
 		aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
+		std::vector<Texture> baseColor = load_material_texture(material,
+				aiTextureType_BASE_COLOR, "texture_base_color");
+		textures.insert(textures.end(), baseColor.begin(), baseColor.end());
 		std::vector<Texture> diffuseMaps = load_material_texture(material, 
 				aiTextureType_DIFFUSE, "texture_diffuse");
 		textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());

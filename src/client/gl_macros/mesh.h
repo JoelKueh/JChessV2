@@ -1,3 +1,6 @@
+#ifndef M_MESH
+#define M_MESH
+
 #include <vector>
 #include <string>
 #include <glm/glm.hpp>
@@ -29,3 +32,5 @@ private:
 	unsigned int VAO, VBO, EBO;
 	void setup_mesh();
 };
+
+#endif

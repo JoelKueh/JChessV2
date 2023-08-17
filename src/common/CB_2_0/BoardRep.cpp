@@ -5,7 +5,7 @@ CB::BoardRep::BoardRep()
 {
 	Tables::gen_move_tables();
 
-	char init_board[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+	const char init_board[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 	write_fen(init_board);
 }
 

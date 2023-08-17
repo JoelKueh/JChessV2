@@ -9,6 +9,8 @@
 #include <GLFW/glfw3.h>
 #include "../../include/glad/glad.h"
 #include "gl_macros/stb_image.h"
+#include "gl_macros/shader.h"
+#include "gl_macros/model.h"
 
 #include "scenes/StartMenu/StartMenu.h"
 #include "Global.h"
@@ -32,6 +34,8 @@ GLFWwindow* window;
 
 Model *chess_set[2][6];
 Model *board;
+Shader *piece_shdr;
+Shader *board_shdr;
 std::string piece_fname[2][6] = {
 	{
 		"Black_Pawn.dae",
@@ -144,7 +148,7 @@ int init_gui()
 
 	// Set the viewport
 	glViewport(0, 0, 800, 600); 
-	stbi_set_flip_vertically_on_load(true);
+	stbi_set_flip_vertically_on_load(false);
 	glEnable(GL_DEPTH_TEST);
 
 	glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
@@ -162,6 +166,11 @@ int init_gui()
 	board = new Model((exe_dir
 			+ "resources/client/chess_set/"
 			+ "Models/Board.dae").c_str());
+
+	board_shdr = new Shader((exe_dir + "resources/client/chess_set/"
+			+ "Shaders/board.vert").c_str(),
+			(exe_dir + "resources/client/chess_set/"
+			+ "Shaders/board.frag").c_str());
 
 	return 1;
 }
@@ -200,6 +209,8 @@ int cleanup_gui()
 			delete chess_set[i][j];
 		}
 	};
+	delete board;
+	delete board_shdr;
 
 	glfwDestroyWindow(window);
 	glfwTerminate();
