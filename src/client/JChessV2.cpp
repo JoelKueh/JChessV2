@@ -171,6 +171,10 @@ int init_gui()
 			+ "Shaders/board.vert").c_str(),
 			(exe_dir + "resources/client/chess_set/"
 			+ "Shaders/board.frag").c_str());
+	piece_shdr = new Shader((exe_dir + "resources/client/chess_set/"
+			+ "Shaders/piece.vert").c_str(),
+			(exe_dir + "resources/client/chess_set/"
+			+ "Shaders/piece.frag").c_str());
 
 	return 1;
 }

@@ -117,7 +117,7 @@ void StartGUI::draw()
 	glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	shader->use();
+	piece_shdr->use();
 
 	char board_char[8][8];
 	board_pieces.board_to_str(board_char);
@@ -127,12 +127,11 @@ void StartGUI::draw()
         glm::mat4 projection = glm::perspective(glm::radians(camera->zoom),
 			(float)width / (float)height, 0.1f, 400.0f);
 	glm::mat4 view = camera->get_view_matr();
-        shader->set_mat4("projection", projection);
-        shader->set_mat4("view", view);
+        piece_shdr->set_mat4("projection", projection);
+        piece_shdr->set_mat4("view", view);
 
         glm::mat4 init = glm::mat4(1.0f);
 	glm::mat4 model;
-	chess_set[0][0]->draw(*shader);
 	for (int row = 0; row < 8; ++row) {
 		for (int col = 0; col < 8; ++col) {
 			const float width = 1.5f;
@@ -141,7 +140,7 @@ void StartGUI::draw()
 			model = glm::translate(init, glm::vec3(x, 0.0f, y));
 			model = glm::rotate(model, glm::radians(180.0f),
 					glm::vec3(0.0f, 1.0f, 0.0f));
-			shader->set_mat4("model", model);
+			piece_shdr->set_mat4("model", model);
 			draw_piece(board_char[row][col]);
 		}
 	}
@@ -162,23 +161,28 @@ void StartGUI::draw()
 void StartGUI::draw_piece(char piece)
 {
 	Model *model;
+	bool is_white;
+
 	switch (piece) {
-		case 'P': model = chess_set[1][0]; break;
-		case 'N': model = chess_set[1][1]; break;
-		case 'B': model = chess_set[1][2]; break;
-		case 'R': model = chess_set[1][3]; break;
-		case 'Q': model = chess_set[1][4]; break;
-		case 'K': model = chess_set[1][5]; break;
-		case 'p': model = chess_set[0][0]; break;
-		case 'n': model = chess_set[0][1]; break;
-		case 'b': model = chess_set[0][2]; break;
-		case 'r': model = chess_set[0][3]; break;
-		case 'q': model = chess_set[0][4]; break;
-		case 'k': model = chess_set[0][5]; break;
+		case 'P': is_white = true; model = chess_set[1][0]; break;
+		case 'N': is_white = true; model = chess_set[1][1]; break;
+		case 'B': is_white = true; model = chess_set[1][2]; break;
+		case 'R': is_white = true; model = chess_set[1][3]; break;
+		case 'Q': is_white = true; model = chess_set[1][4]; break;
+		case 'K': is_white = true; model = chess_set[1][5]; break;
+		case 'p': is_white = false; model = chess_set[0][0]; break;
+		case 'n': is_white = false; model = chess_set[0][1]; break;
+		case 'b': is_white = false; model = chess_set[0][2]; break;
+		case 'r': is_white = false; model = chess_set[0][3]; break;
+		case 'q': is_white = false; model = chess_set[0][4]; break;
+		case 'k': is_white = false; model = chess_set[0][5]; break;
 		default: return;
 	}
 
-	model->draw(*shader);
+	float color = is_white ? 0.95 : 0.35;
+
+	piece_shdr->set_float("color", color);
+	model->draw(*piece_shdr);
 }
 
 void StartGUI::init_menu()
