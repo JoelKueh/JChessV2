@@ -3,6 +3,7 @@
 
 #include "StartUI.h"
 #include "../../../common/CB_2_0/BoardRep.h"
+#include "../../BoardSurfaceDisp.h"
 
 // Window manager and OpenGL function loader
 #define GLFW_INCLUDE_NONE
@@ -47,7 +48,7 @@ private:
 	virtual void switch_selected_choice(int choice_change);
 	virtual int handle_enter();
 	void draw();
-	void draw_piece(char piece);
+	void draw_piece(char piece, glm::mat4 &translation);
 
 	static void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 	static void scroll_callback(GLFWwindow *window,

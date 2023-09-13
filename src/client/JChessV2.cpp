@@ -11,6 +11,7 @@
 #include "gl_macros/stb_image.h"
 #include "gl_macros/shader.h"
 #include "gl_macros/model.h"
+#include "BoardSurfaceDisp.h"
 
 #include "scenes/StartMenu/StartMenu.h"
 #include "Global.h"
@@ -34,8 +35,8 @@ GLFWwindow* window;
 
 Model *chess_set[2][6];
 Model *board;
-Shader *piece_shdr;
-Shader *board_shdr;
+Shader *set_shdr;
+BoardSurfaceDisplay *board_surface;
 std::string piece_fname[2][6] = {
 	{
 		"Black_Pawn.dae",
@@ -166,15 +167,11 @@ int init_gui()
 	board = new Model((exe_dir
 			+ "resources/client/chess_set/"
 			+ "Models/Board.dae").c_str());
-
-	board_shdr = new Shader((exe_dir + "resources/client/chess_set/"
-			+ "Shaders/board.vert").c_str(),
+	set_shdr = new Shader((exe_dir + "resources/client/chess_set/"
+			+ "Shaders/set_shdr.vert").c_str(),
 			(exe_dir + "resources/client/chess_set/"
-			+ "Shaders/board.frag").c_str());
-	piece_shdr = new Shader((exe_dir + "resources/client/chess_set/"
-			+ "Shaders/piece.vert").c_str(),
-			(exe_dir + "resources/client/chess_set/"
-			+ "Shaders/piece.frag").c_str());
+			+ "Shaders/set_shdr.frag").c_str());
+	board_surface = new BoardSurfaceDisplay;
 
 	return 1;
 }
@@ -214,7 +211,8 @@ int cleanup_gui()
 		}
 	};
 	delete board;
-	delete board_shdr;
+	delete set_shdr;
+	delete board_surface;
 
 	glfwDestroyWindow(window);
 	glfwTerminate();

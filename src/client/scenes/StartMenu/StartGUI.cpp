@@ -8,8 +8,8 @@ std::string resource_root;
 
 extern Model *chess_set[2][6];
 extern Model *board;
-extern Shader *board_shdr;
-extern Shader *piece_shdr;
+extern Shader *set_shdr;
+extern BoardSurfaceDisplay *board_surface;
 
 StartGUI *StartGUI::inst = nullptr;
 
@@ -63,7 +63,9 @@ StartGUI::StartGUI()
 
 	shader = new Shader((resource_root + "vertex_shader.glsl").c_str(),
 			(resource_root + "fragment_shader.glsl").c_str());
-	camera = new Camera();
+	camera = new Camera(11.0f, 10.0f, 14.0f,
+			0.0f, 1.0f, 0.0f,
+			-130.0f, -32.0f);
 
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetCursorPosCallback(window, mouse_callback);
@@ -114,10 +116,10 @@ int StartGUI::update()
 
 void StartGUI::draw()
 {
-	glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
+	glClearColor(0.52f, 0.81f, 0.93f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	piece_shdr->use();
+	set_shdr->use();
 
 	char board_char[8][8];
 	board_pieces.board_to_str(board_char);
@@ -127,8 +129,8 @@ void StartGUI::draw()
         glm::mat4 projection = glm::perspective(glm::radians(camera->zoom),
 			(float)width / (float)height, 0.1f, 400.0f);
 	glm::mat4 view = camera->get_view_matr();
-        piece_shdr->set_mat4("projection", projection);
-        piece_shdr->set_mat4("view", view);
+        set_shdr->set_mat4("projection", projection);
+        set_shdr->set_mat4("view", view);
 
         glm::mat4 init = glm::mat4(1.0f);
 	glm::mat4 model;
@@ -140,37 +142,39 @@ void StartGUI::draw()
 			model = glm::translate(init, glm::vec3(x, 0.0f, y));
 			model = glm::rotate(model, glm::radians(180.0f),
 					glm::vec3(0.0f, 1.0f, 0.0f));
-			piece_shdr->set_mat4("model", model);
-			draw_piece(board_char[row][col]);
+			draw_piece(board_char[row][col], model);
 		}
 	}
 
-	board_shdr->use();
-	board_shdr->set_mat4("projection", projection);
-	board_shdr->set_mat4("view", view);
 	model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
         model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
-	board_shdr->set_mat4("model", model);
-	board->draw(*board_shdr);
+	set_shdr->set_mat4("model", model);
+	glm::vec3 color = glm::vec3(0.15, 0.15, 0.15);
+	set_shdr->set_vec3("color", color);
+	board->draw(*set_shdr);
+
+	board_surface->draw_base();
 	
         glfwSwapBuffers(window);
         glfwPollEvents();
 }
 
-void StartGUI::draw_piece(char piece)
+void StartGUI::draw_piece(char piece, glm::mat4 &translation)
 {
 	Model *model;
 	bool is_white;
+	bool needs_translation = true;
+
 
 	switch (piece) {
-		case 'P': is_white = true; model = chess_set[1][0]; break;
+		case 'P': is_white = true; model = chess_set[1][0]; needs_translation = false; break;
 		case 'N': is_white = true; model = chess_set[1][1]; break;
 		case 'B': is_white = true; model = chess_set[1][2]; break;
 		case 'R': is_white = true; model = chess_set[1][3]; break;
 		case 'Q': is_white = true; model = chess_set[1][4]; break;
 		case 'K': is_white = true; model = chess_set[1][5]; break;
-		case 'p': is_white = false; model = chess_set[0][0]; break;
+		case 'p': is_white = false; model = chess_set[0][0]; needs_translation = false; break;
 		case 'n': is_white = false; model = chess_set[0][1]; break;
 		case 'b': is_white = false; model = chess_set[0][2]; break;
 		case 'r': is_white = false; model = chess_set[0][3]; break;
@@ -179,10 +183,15 @@ void StartGUI::draw_piece(char piece)
 		default: return;
 	}
 
-	float color = is_white ? 0.95 : 0.35;
+	if (needs_translation)
+		translation = glm::translate(translation, glm::vec3(0.0f, 0.17f, 0.0f));
 
-	piece_shdr->set_float("color", color);
-	model->draw(*piece_shdr);
+	glm::vec3 color = is_white ? glm::vec3(0.95, 0.95, 0.95)
+		: glm::vec3(0.25, 0.25, 0.25);
+
+	set_shdr->set_vec3("color", color);
+	set_shdr->set_mat4("model", translation);
+	model->draw(*set_shdr);
 }
 
 void StartGUI::init_menu()
