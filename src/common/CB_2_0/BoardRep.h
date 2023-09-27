@@ -11,6 +11,33 @@
 #include "tables/move_tables.h"
 #include "tables/tf_table.h"
 
+/*
+ * This file contains the class that describes a ChessBoard.
+ * The representation is mostly based on the bitboard representation described
+ * on chessprogramming.org, but also contains a redundant maibox representation
+ * to quickly answer the question "Which piece is on square X?".
+ *
+ * AI users of this class need only initialize the board to a given
+ * position, then call get_mv_set to generate the needed set of moves at a
+ * given position. This will return a heap-allocated vector populated with all
+ * legal moves at a given position.
+ *
+ * UI users of this class need only call get_mv_set to get a struct of four
+ * bitboards at a given position that represents the legal moves that can
+ * be made from a given square at a given position.
+ *
+ * When a move is made on the ChessBoard, many of the different tables will be
+ * invalidated. Tables containing pin and check information are need to be
+ * updated upon every iteration. This is hidden from the user so that tables
+ * are only updated exactly when they are needed. E.G. gen_move_list() updates
+ * all tables before generating any moves.
+ *
+ * The board representation follows the make/unmake philosophy rather than the
+ * copy make philosophy. This is mostly because tables need not be regenerated
+ * when revisiting a node. They only need to be generated when generating the
+ * move set for a particular node, which only needs to be done once. See the
+ * perft algorithm implemented in cli_debug for more information.
+ */
 namespace CB
 {
 

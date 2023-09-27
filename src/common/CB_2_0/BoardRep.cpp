@@ -608,8 +608,13 @@ void CB::BoardRep::append_promos(std::vector<Move> *move_list)
 
 void CB::BoardRep::get_mv_set(move_set *mask, int sq)
 {
-	if (sq_is_white(sq) & !white_turn)
+	if (sq_is_white(sq) ^ white_turn) {
+		mask->push = 0;
+		mask->cap = 0;
+		mask->special = 0;
+		mask->promo = 0;
 		return;
+	}
 
 	int pid = get_pid(sq);
 

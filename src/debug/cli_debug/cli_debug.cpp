@@ -36,6 +36,7 @@ void print_move(CB::Move &move);
 void print_moves(CB::BoardRep &board, std::stringstream &args);
 void print_board(const CB::BoardRep &board);
 void handle_go(CB::BoardRep &board, std::stringstream &args);
+std::vector<CB::Move> *gen_mv_list_slow(CB::BoardRep &board);
 void init_perft(CB::BoardRep &board, int depth);
 uint64_t perft(CB::BoardRep &board, int depth);
 std::string to_algebraic(int sq);
@@ -253,6 +254,43 @@ void handle_go(CB::BoardRep &board, std::stringstream &args)
 	}
 }
 
+// This function is a little bit odd, it was only used once to run a perft
+// test on CB::get_mv_set()
+std::vector<CB::Move> *gen_mv_list_slow(CB::BoardRep &board)
+{
+	std::vector<CB::Move> *mv_set = new std::vector<CB::Move>;
+
+	for (int from = 0; from < 64; ++from) {
+		CB::move_set mask;
+		board.get_mv_set(&mask, from);
+
+		while(mask.push) {
+			int to = CB::pop_rbit(mask.push);
+			mv_set->push_back(board.format_mv(to, from, CB::pid::EMPTY));
+		}
+
+		while(mask.cap) {
+			int to = CB::pop_rbit(mask.cap);
+			mv_set->push_back(board.format_mv(to, from, CB::pid::EMPTY));
+		}
+
+		while(mask.special) {
+			int to = CB::pop_rbit(mask.special);
+			mv_set->push_back(board.format_mv(to, from, CB::pid::EMPTY));
+		}
+
+		while(mask.promo) {
+			int to = CB::pop_rbit(mask.promo);
+			mv_set->push_back(board.format_mv(to, from, CB::pid::KNIGHT));
+			mv_set->push_back(board.format_mv(to, from, CB::pid::BISHOP));
+			mv_set->push_back(board.format_mv(to, from, CB::pid::ROOK));
+			mv_set->push_back(board.format_mv(to, from, CB::pid::QUEEN));
+		}
+	}
+
+	return mv_set;
+}
+
 void init_perft(CB::BoardRep &board, int depth)
 {
 	auto start = std::chrono::high_resolution_clock::now();
@@ -261,19 +299,21 @@ void init_perft(CB::BoardRep &board, int depth)
 	uint64_t nodes = 0;
 
 	move_list = board.gen_move_list();
+	// DEBUG:
+	// move_list = gen_mv_list_slow(board);
 	for (int i = 0; i < move_list->size(); ++i) {
 		std::cout << std::flush;
 
 		// TODO: Switch this to c-style access for performance
-		board.make(move_list->at(i));
+		board.make((*move_list)[i]);
 		uint64_t result = perft(board, depth - 1);
 		nodes += result;
 		board.unmake();
 
-		std::cout << to_algebraic(move_list->at(i).get_from())
-			<< to_algebraic(move_list->at(i).get_to());
+		std::cout << to_algebraic((*move_list)[i].get_from())
+			<< to_algebraic((*move_list)[i].get_to());
 
-		switch (move_list->at(i).get_flags()) {
+		switch ((*move_list)[i].get_flags()) {
 			case CB::Move::KNIGHT_PROMO:
 			case CB::Move::KNIGHT_PROMO_CAPTURE:
 				std::cout << 'n';
@@ -311,13 +351,17 @@ uint64_t perft(CB::BoardRep &board, int depth)
 	std::vector<CB::Move> *move_list;
 	uint64_t nodes = 0;
 
-	if (depth == 0) {
-		return 1ULL;
-	}
 
 	move_list = board.gen_move_list();
+
+	if (depth == 1) {
+		int size = move_list->size();
+		delete move_list;
+		return size;
+	}
+
 	for (int i = 0; i < move_list->size(); ++i) {
-		board.make(move_list->at(i));
+		board.make((*move_list)[i]);
 		nodes += perft(board, depth - 1);
 		board.unmake();
 	}

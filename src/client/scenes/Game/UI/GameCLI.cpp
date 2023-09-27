@@ -255,12 +255,12 @@ void GameCLI::init_coords()
 {
 	for (int i = 0; i < 8; i++)
 	{
-		char let = 'h' - i;
-		char num = '1' + i;
-		mvaddch(3 + 2 * i, 2, let);
-		mvaddch(3 + 2 * i, 38, let);
-		mvaddch(1, 6 + 4 * i, num);
-		mvaddch(19, 6 + 4 * i, num);
+		char let = 'a' + i;
+		char num = '8' - i;
+		mvaddch(3 + 2 * i, 2, num);
+		mvaddch(3 + 2 * i, 38, num);
+		mvaddch(1, 6 + 4 * i, let);
+		mvaddch(19, 6 + 4 * i, let);
 	}
 }
 

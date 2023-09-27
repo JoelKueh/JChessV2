@@ -18,7 +18,8 @@ Game::Game(int white, int black, std::string *time_str)
 	else
 		UI = new GameCLI();
 
-	char fen_str[] = "rnbqkbnr/pppp1ppp/4p3/8/Q7/2P5/PP1PPPPP/RNB1KBNR b KQkq - 1 2";
+	//char fen_str[] = "rnbqkbnr/pppp1ppp/4p3/8/Q7/2P5/PP1PPPPP/RNB1KBNR b KQkq - 1 2";
+	char fen_str[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 	board->write_fen(fen_str);
 
 	char board_str[8][8];
