@@ -7,6 +7,7 @@
 #include <bit>
 
 #include "Move.h"
+#include "MoveList.h"
 #include "Utils.h"
 #include "tables/move_tables.h"
 #include "tables/tf_table.h"
@@ -58,7 +59,7 @@ public:
 
 	// Generates the list of legal moves at the given position.
 	// Memory is allocated to the heap and should be freed when done.
-	std::vector<Move> *gen_move_list();
+	void gen_move_list(MoveList *move_list);
 	// Populates mask with three bitboards containing the legal push,
 	// capture, and special moves at a given square
 	void get_mv_set(move_set *mask, int sq);
@@ -124,12 +125,12 @@ private:
 	Move format_simple_mv(unsigned int to, unsigned int from);
 	Move format_promo_mv(unsigned int to, unsigned int from, pid promo_piece);
 	// Use this to append all captures and pushes to the move_list
-	void append_simple_moves(std::vector<Move> *move_list);
+	void append_simple_moves(MoveList *move_list);
 	// Use these to append special moves to the move list
-	void append_castle_moves(std::vector<Move> *move_list);
-	void append_enp_moves(std::vector<Move> *move_list);
-	void append_dpawn_push(std::vector <Move> *move_list);
-	void append_promos(std::vector<Move> *move_list);
+	void append_castle_moves(MoveList *move_list);
+	void append_enp_moves(MoveList *move_list);
+	void append_dpawn_push(MoveList *move_list);
+	void append_promos(MoveList *move_list);
 
 	bool ksc_legal() const;
 	bool qsc_legal() const;
