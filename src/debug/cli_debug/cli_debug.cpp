@@ -306,7 +306,6 @@ void init_perft(CB::BoardRep &board, int depth)
 	for (int i = 0; i < move_list.size(); ++i) {
 		std::cout << std::flush;
 
-		// TODO: Switch this to c-style access for performance
 		board.make(move_list.at(i));
 		uint64_t result = perft(board, depth - 1);
 		nodes += result;
@@ -348,14 +347,33 @@ void init_perft(CB::BoardRep &board, int depth)
 
 uint64_t perft(CB::BoardRep &board, int depth)
 {
+	/* Faster but kind of cheating. (200M Leaf Nps)
 	CB::MoveList move_list;
 	uint64_t nodes = 0;
-
 	board.gen_move_list(&move_list);
-
-	if (depth == 1) {
+	if (depth == 0)
 		return move_list.size();
+	*/
+
+	/* Slower but actually visits leaf nodes. (50M Leaf Nps)
+	 * This should help when testing performance of alpha-beta search
+	 * as it's a better representation of what actually happens.
+	 * E.G. will make alpha-beta pruning stand out more (or at all for 
+	 * that matter). */
+	if (depth == 0) {
+	        return 1ULL;
 	}
+	/* Marginal speed increase by avoiding move_list generation on leaf
+	 * nodes. A further speed increase may be achieved by creating some
+	 * tree walk move structure that relies on depth-first search and
+	 * deepens as the search deepens.
+	 *
+	 * E.G. don't make a new list for every node when you only need one
+	 * list for every level. The compiler may already be optimizing this,
+	 * but it's worth a shot. */
+	CB::MoveList move_list;
+	uint64_t nodes = 0;
+	board.gen_move_list(&move_list);
 
 	for (int i = 0; i < move_list.size(); ++i) {
 		board.make(move_list.at(i));

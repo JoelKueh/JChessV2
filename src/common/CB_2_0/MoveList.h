@@ -9,9 +9,9 @@ class MoveList {
 public:
 	MoveList() = default;
 
-	int size() { return length; }
-	void push_back(CB::Move move) { data[length++] = move; }
-	CB::Move at(int i) { return data[i]; }
+	inline int size() { return length; }
+	inline void push_back(CB::Move move) { data[length++] = move; }
+	inline CB::Move at(int i) { return data[i]; }
 
 	~MoveList() = default;
 private:
