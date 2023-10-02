@@ -5,7 +5,7 @@ CB::BoardRep::BoardRep()
 {
 	Tables::gen_move_tables();
 
-	char init_board[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+	const char init_board[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 	write_fen(init_board);
 }
 
@@ -454,11 +454,8 @@ CB::Move CB::BoardRep::format_promo_mv(unsigned int to, unsigned int from, pid p
 	return Move(from, to, flag);
 }
 
-std::vector<CB::Move> *CB::BoardRep::gen_move_list()
+void CB::BoardRep::gen_move_list(MoveList *move_list)
 {
-	std::vector<Move> *move_list;
-	move_list = new std::vector<Move>;
-
 	if (!tables_valid)
 		update_all();
 
@@ -467,11 +464,9 @@ std::vector<CB::Move> *CB::BoardRep::gen_move_list()
 	append_enp_moves(move_list);
 	append_dpawn_push(move_list);
 	append_promos(move_list);
-
-	return move_list;
 }
 
-void CB::BoardRep::append_simple_moves(std::vector<Move> *move_list)
+void CB::BoardRep::append_simple_moves(MoveList *move_list)
 {
 	uint64_t pieces = bb.color[white_turn];
 	// Take out the pawns that are on the opposing sides pawn home row
@@ -487,7 +482,7 @@ void CB::BoardRep::append_simple_moves(std::vector<Move> *move_list)
 	}
 }
 
-void CB::BoardRep::append_castle_moves(std::vector<Move> *move_list)
+void CB::BoardRep::append_castle_moves(MoveList *move_list)
 {
 	if (ksc_legal()) {
 		int from = white_turn ? WKING_INIT_SQ : BKING_INIT_SQ;
@@ -526,7 +521,7 @@ bool CB::BoardRep::qsc_legal() const
 	return true;
 }
 
-void CB::BoardRep::append_enp_moves(std::vector<Move> *move_list)
+void CB::BoardRep::append_enp_moves(MoveList *move_list)
 {
 	if (!state_history.back().enp_availiable())
 		return;
@@ -557,7 +552,7 @@ void CB::BoardRep::append_enp_moves(std::vector<Move> *move_list)
 	}
 }
 
-void CB::BoardRep::append_dpawn_push(std::vector<Move> *move_list)
+void CB::BoardRep::append_dpawn_push(MoveList *move_list)
 {
 	uint64_t mask = white_turn ? BB_W_PAWN_HOME : BB_B_PAWN_HOME;
 
@@ -575,7 +570,7 @@ void CB::BoardRep::append_dpawn_push(std::vector<Move> *move_list)
 	}
 }
 
-void CB::BoardRep::append_promos(std::vector<Move> *move_list)
+void CB::BoardRep::append_promos(MoveList *move_list)
 {
 	uint64_t pawns = bb.piece[white_turn][PAWN] & (white_turn ? BB_B_PAWN_HOME : BB_W_PAWN_HOME);
 	while (pawns) {
@@ -608,6 +603,14 @@ void CB::BoardRep::append_promos(std::vector<Move> *move_list)
 
 void CB::BoardRep::get_mv_set(move_set *mask, int sq)
 {
+	if (sq_is_white(sq) ^ white_turn) {
+		mask->push = 0;
+		mask->cap = 0;
+		mask->special = 0;
+		mask->promo = 0;
+		return;
+	}
+
 	int pid = get_pid(sq);
 
 	if (!tables_valid)
@@ -618,10 +621,16 @@ void CB::BoardRep::get_mv_set(move_set *mask, int sq)
 	mask->push ^= mask->cap;
 
 	if (pid == PAWN) {
+		uint64_t legal_mask = get_pin_mask(sq);
+		legal_mask &= check_blocks;
+
 		mask->special = get_pawn_sp_mask(sq);
 		mask->promo = (mask->push | mask->cap) & (white_turn ? BB_TOP_ROW : BB_BOTTOM_ROW);
 		mask->push &= ~mask->promo;
 		mask->cap &= ~mask->promo;
+
+		mask->special &= legal_mask;
+		mask->promo &= legal_mask;
 	} else if (pid == KING) {
 		mask->special = get_castle_mask();
 		mask->promo = 0;

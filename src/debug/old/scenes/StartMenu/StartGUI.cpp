@@ -2,7 +2,7 @@
 
 StartGUI::StartGUI() = default;
 
-int StartGUI::handle_nav()
+int StartGUI::update()
 {
   return 0;
 }

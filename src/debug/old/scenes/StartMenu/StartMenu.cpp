@@ -23,7 +23,7 @@ void StartMenu::init()
 
 int StartMenu::update()
 {
-	return UI->handle_nav();
+	return UI->update();
 }
 
 Scene* StartMenu::create_new()

@@ -62,7 +62,7 @@ public:
 	 * Called directly from update.
 	 * Something of a main function for the StartUI class.
 	*/
-	virtual int handle_nav() = 0;
+	virtual int update() = 0;
 	virtual void init_menu() = 0;
 	virtual std::string *get_time_str() = 0;
 	virtual ~StartUI();

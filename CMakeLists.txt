@@ -20,6 +20,9 @@ include_directories(${NCURSES_INCLUDE_DIRS})
 # GLFW stuff
 find_package(glfw3 CONFIG REQUIRED)
 
+# Assimp stuff
+find_package(assimp REQUIRED)
+
 # Build chessboard library
 add_library(chessboard src/common/chessboard/BoardRep.cpp
 	src/common/chessboard/dir_table.cpp
@@ -60,6 +63,31 @@ target_link_libraries(cli_debug cb_2_0)
 # Build Perft
 add_executable(perft src/debug/perft/perft.cpp)
 target_link_libraries(perft chessboard)
+
+# Build client executable
+add_executable(client src/client/JChessV2.cpp include/glad.c
+	src/client/gl_macros/stb_image.cpp
+	src/client/gl_macros/gl_macros.cpp
+	src/client/BoardSurfaceDisp.cpp
+	src/client/gl_macros/model.cpp
+	src/client/gl_macros/mesh.cpp
+	src/client/gl_macros/camera.cpp
+	src/client/scenes/Scene.cpp
+	src/client/scenes/Game/Game.cpp
+	src/client/scenes/Game/Move.cpp
+	src/client/scenes/Game/UI/GameCLI.cpp
+	src/client/scenes/Game/UI/GameUI.cpp
+	src/client/scenes/Game/UI/GameGUI.cpp
+	src/client/scenes/Game/Player/Player.cpp
+	src/client/scenes/Game/Player/PlayerAI.cpp
+	src/client/scenes/Game/Player/PlayerLocal.cpp
+	src/client/scenes/Game/Player/PlayerRemote.cpp
+	src/client/scenes/Game/Player/PlayerTheFish.cpp
+	src/client/scenes/StartMenu/StartMenu.cpp
+	src/client/scenes/StartMenu/StartUI.cpp
+	src/client/scenes/StartMenu/StartCLI.cpp
+	src/client/scenes/StartMenu/StartGUI.cpp)
+target_link_libraries(client cb_2_0 ${NCURSES_LIBRARIES} glfw assimp)
 
 # Set output path
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/bin)

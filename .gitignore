@@ -5,3 +5,6 @@ out
 .cache
 build/*
 !build/README.md
+!build/bin
+build/bin/*
+!build/bin/resources

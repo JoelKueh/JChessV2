@@ -36,6 +36,7 @@ void print_move(CB::Move &move);
 void print_moves(CB::BoardRep &board, std::stringstream &args);
 void print_board(const CB::BoardRep &board);
 void handle_go(CB::BoardRep &board, std::stringstream &args);
+std::vector<CB::Move> *gen_mv_list_slow(CB::BoardRep &board);
 void init_perft(CB::BoardRep &board, int depth);
 uint64_t perft(CB::BoardRep &board, int depth);
 std::string to_algebraic(int sq);
@@ -212,8 +213,10 @@ void print_moves(CB::BoardRep &board, std::stringstream &args)
 		return;
 	}
 
-	std::vector<CB::Move> *move_list = board.gen_move_list();
-	std::cout << "Num Moves: " << move_list->size() << std::endl;
+	// TODO: FIX THIS
+	/*CB::MoveList move_list;
+	board.gen_move_list(&move_list);
+	std::cout << "Num Moves: " << move_list.size() << std::endl;
 	while (!move_list->empty()) {
 		CB::Move &move = move_list->back();
 
@@ -223,7 +226,7 @@ void print_moves(CB::BoardRep &board, std::stringstream &args)
 		move_list->pop_back();
 	}
 
-	delete move_list;
+	delete move_list;*/
 }
 
 void print_move(CB::Move &move)
@@ -253,27 +256,65 @@ void handle_go(CB::BoardRep &board, std::stringstream &args)
 	}
 }
 
+// This function is a little bit odd, it was only used once to run a perft
+// test on CB::get_mv_set()
+std::vector<CB::Move> *gen_mv_list_slow(CB::BoardRep &board)
+{
+	std::vector<CB::Move> *mv_set = new std::vector<CB::Move>;
+
+	for (int from = 0; from < 64; ++from) {
+		CB::move_set mask;
+		board.get_mv_set(&mask, from);
+
+		while(mask.push) {
+			int to = CB::pop_rbit(mask.push);
+			mv_set->push_back(board.format_mv(to, from, CB::pid::EMPTY));
+		}
+
+		while(mask.cap) {
+			int to = CB::pop_rbit(mask.cap);
+			mv_set->push_back(board.format_mv(to, from, CB::pid::EMPTY));
+		}
+
+		while(mask.special) {
+			int to = CB::pop_rbit(mask.special);
+			mv_set->push_back(board.format_mv(to, from, CB::pid::EMPTY));
+		}
+
+		while(mask.promo) {
+			int to = CB::pop_rbit(mask.promo);
+			mv_set->push_back(board.format_mv(to, from, CB::pid::KNIGHT));
+			mv_set->push_back(board.format_mv(to, from, CB::pid::BISHOP));
+			mv_set->push_back(board.format_mv(to, from, CB::pid::ROOK));
+			mv_set->push_back(board.format_mv(to, from, CB::pid::QUEEN));
+		}
+	}
+
+	return mv_set;
+}
+
 void init_perft(CB::BoardRep &board, int depth)
 {
 	auto start = std::chrono::high_resolution_clock::now();
 
-	std::vector<CB::Move> *move_list;
 	uint64_t nodes = 0;
 
-	move_list = board.gen_move_list();
-	for (int i = 0; i < move_list->size(); ++i) {
+	CB::MoveList move_list;
+	board.gen_move_list(&move_list);
+	// DEBUG:
+	// move_list = gen_mv_list_slow(board);
+	for (int i = 0; i < move_list.size(); ++i) {
 		std::cout << std::flush;
 
-		// TODO: Switch this to c-style access for performance
-		board.make(move_list->at(i));
+		board.make(move_list.at(i));
 		uint64_t result = perft(board, depth - 1);
 		nodes += result;
 		board.unmake();
 
-		std::cout << to_algebraic(move_list->at(i).get_from())
-			<< to_algebraic(move_list->at(i).get_to());
+		std::cout << to_algebraic(move_list.at(i).get_from())
+			<< to_algebraic(move_list.at(i).get_to());
 
-		switch (move_list->at(i).get_flags()) {
+		switch (move_list.at(i).get_flags()) {
 			case CB::Move::KNIGHT_PROMO:
 			case CB::Move::KNIGHT_PROMO_CAPTURE:
 				std::cout << 'n';
@@ -302,26 +343,43 @@ void init_perft(CB::BoardRep &board, int depth)
 	std::cout << "Perft completed successfully with " << nodes
 		<< " nodes searched " << std::endl
 		<< "after " << duration.count() << " milliseconds." << std::endl;
-
-	delete move_list;
 }
 
 uint64_t perft(CB::BoardRep &board, int depth)
 {
-	std::vector<CB::Move> *move_list;
+	/* Faster but kind of cheating. (200M Leaf Nps)
+	CB::MoveList move_list;
 	uint64_t nodes = 0;
+	board.gen_move_list(&move_list);
+	if (depth == 0)
+		return move_list.size();
+	*/
 
+	/* Slower but actually visits leaf nodes. (50M Leaf Nps)
+	 * This should help when testing performance of alpha-beta search
+	 * as it's a better representation of what actually happens.
+	 * E.G. will make alpha-beta pruning stand out more (or at all for 
+	 * that matter). */
 	if (depth == 0) {
-		return 1ULL;
+	        return 1ULL;
 	}
+	/* Marginal speed increase by avoiding move_list generation on leaf
+	 * nodes. A further speed increase may be achieved by creating some
+	 * tree walk move structure that relies on depth-first search and
+	 * deepens as the search deepens.
+	 *
+	 * E.G. don't make a new list for every node when you only need one
+	 * list for every level. The compiler may already be optimizing this,
+	 * but it's worth a shot. */
+	CB::MoveList move_list;
+	uint64_t nodes = 0;
+	board.gen_move_list(&move_list);
 
-	move_list = board.gen_move_list();
-	for (int i = 0; i < move_list->size(); ++i) {
-		board.make(move_list->at(i));
+	for (int i = 0; i < move_list.size(); ++i) {
+		board.make(move_list.at(i));
 		nodes += perft(board, depth - 1);
 		board.unmake();
 	}
-	delete move_list;
 	return nodes;
 }
 
