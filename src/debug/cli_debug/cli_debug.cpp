@@ -4,6 +4,7 @@
 #include <cstring>
 #include <sstream>
 #include "../../common/CB_2_0/BoardRep.cpp"
+#include "../../common/chess_inator/chess_inator.h"
 
 // TODO: IMPLEMENT MULTITHREADED THINKING
 #include <thread>
@@ -41,6 +42,8 @@ void init_perft(CB::BoardRep &board, int depth);
 uint64_t perft(CB::BoardRep &board, int depth);
 std::string to_algebraic(int sq);
 CB::Move algbr_to_move(CB::BoardRep &board, std::string &algebraic);
+
+double eval_perft(AI::ChessInator &ai, int depth);
 
 const char np_line[] = "+---+---+---+---+---+---+---+---+";
 

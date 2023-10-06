@@ -534,6 +534,9 @@ void CB::BoardRep::append_enp_moves(MoveList *move_list)
 		CB::Move move = Move(sq, enp_sq, Move::ENPASSANT);
 
 		// Make the potential move, then see if the king is in check, then back out
+		// TODO: No need to make the full move as lots of extra info
+		// is generated. Enpassant moves are so rare that this
+		// doesn't matter that much however.
 		make(move);
 		uint64_t temp_checkers;
 		int king_sq = peek_rbit(bb.piece[!white_turn][KING]);

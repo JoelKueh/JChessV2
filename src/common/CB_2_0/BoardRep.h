@@ -20,8 +20,7 @@
  *
  * AI users of this class need only initialize the board to a given
  * position, then call get_mv_set to generate the needed set of moves at a
- * given position. This will return a heap-allocated vector populated with all
- * legal moves at a given position.
+ * given position.
  *
  * UI users of this class need only call get_mv_set to get a struct of four
  * bitboards at a given position that represents the legal moves that can
@@ -38,6 +37,44 @@
  * when revisiting a node. They only need to be generated when generating the
  * move set for a particular node, which only needs to be done once. See the
  * perft algorithm implemented in cli_debug for more information.
+ *
+ *
+ * Move Generation Notes:
+ * As stated above, this class uses the bitboard representation with redundant
+ * mailbox representation. Move generation happens in 6 steps.
+ * 1. Tables are updated.
+ * 2. Simple moves are appended to the MoveList.
+ * 	a. Simple moves cover most pushes and captures.
+ * 	b. Moves generated as a bitboard then formatted into a CB::Move
+ * 	c. Legaliy of moves is checked with pin masks and danger squares.
+ * 	d. Almost all simple moves are generated through table lookups.
+ * 	   In the case of the rook, bishop, and queen moves this is done
+ * 	   using the magic bitboards algorithm.
+ * 3. Castle moves are appended to the MoveList.
+ * 	a. Legaality is checked using the danger_squares table.
+ * 	b. It is impossible for a rook to be pinned if it can still castle
+ * 	   so checking pins is not needed.
+ * 4. Enpassant moves are appended to the MoveList
+ *	a. An enpassant is the only move that removes two pieces from the board
+ *	   This makes it very difficult to handle pins without making the move
+ *	   Therefore, legality is checked by making the move, checking rays
+ *	   from the king, then unmaking the move.
+ * 5. Double pawn pushes are appended to the MoveList
+ *      a. This is only seperate from the simple moves because of the special
+ *         information that it adds to the board state.
+ * 6. Pawn promos are appended to the MoveList
+ * 	a. As a pawn promotion appends four different moves to the move list
+ * 	   (One for each promoted piece), it is much easier to handle these
+ * 	   individually.
+ * 
+ *
+ * Make/Unmake Notes:
+ * The make/umnake algorithm operates based on 16 bit moves described in the
+ * CB::Move class. Some extra data for each position is stored in a
+ * state_history stack. A vector was chosen for this stack because items
+ * are removed from the stack as often as they are added (Move generation
+ * usually only searches to a depth of 6ish so the vector rarely needs to 
+ * be resized I assume).
  */
 namespace CB
 {
@@ -74,7 +111,7 @@ public:
 
 	~BoardRep() = default;
 
-private:
+protected:
 	std::vector<Move> move_history;
 	std::vector<board_state_extra> state_history;
 	int full_move_number = 0;
