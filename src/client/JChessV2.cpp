@@ -19,7 +19,7 @@
 // DEBUG
 // Tail the file output.txt in another terminal to get debug output from the fstream
 #include <fstream>
-std::ofstream debug_out;
+std::stream debug_out;
 
 Scene *my_scene;
 options my_options;
