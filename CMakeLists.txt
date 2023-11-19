@@ -9,7 +9,7 @@ set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 # Set Debug
-# set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Debug)
 
 # Ncurses stuff
 set(CURSES_NEED_NCURSES TRUE)
@@ -88,6 +88,13 @@ add_executable(client src/client/JChessV2.cpp include/glad.c
 	src/client/scenes/StartMenu/StartCLI.cpp
 	src/client/scenes/StartMenu/StartGUI.cpp)
 target_link_libraries(client cb_2_0 ${NCURSES_LIBRARIES} glfw assimp)
+
+# Build server executable
+add_executable(server src/server/jcsrv.cpp)
+target_link_libraries(server cb_2_0)
+
+# Build test client executable
+add_executable(test_client src/server/test_client.cpp)
 
 # Set output path
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/bin)
