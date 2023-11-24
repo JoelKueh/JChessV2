@@ -90,7 +90,7 @@ add_executable(client src/client/JChessV2.cpp include/glad.c
 target_link_libraries(client cb_2_0 ${NCURSES_LIBRARIES} glfw assimp)
 
 # Build server executable
-add_executable(server src/server/jcsrv.cpp)
+add_executable(server src/server/server.cpp src/server/server_utils.cpp)
 target_link_libraries(server cb_2_0)
 
 # Build test client executable

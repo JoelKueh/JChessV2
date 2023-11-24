@@ -1,12 +1,8 @@
 #include <iostream>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <sys/epoll.h>
 #include <string>
 
 #include "../common/CB_2_0/BoardRep.h"
+#include "server_utils.h"
 
 #define PORT 24388
 #define MAX_CLIENTS 30
@@ -14,16 +10,11 @@
 
 #define MAX_EVENTS 5
 #define READ_SIZE 10
+#define MAX_COMMAND_LENGTH 50
 
-struct epoll_entry {
-	int fd;
-	struct epoll_event *event;
-};
+void parse_command(client &client) {
 
-struct client {
-	struct epoll_entry entry;
-	CB::BoardRep *board;
-};
+}
 
 void handle_master(struct epoll_entry &master, struct epoll_entry &epoll,
 		struct client clients[MAX_CLIENTS], int nclients)
@@ -55,12 +46,19 @@ void handle_master(struct epoll_entry &master, struct epoll_entry &epoll,
 	}
 }
 
-void handle_client(int client, char read_buffer[READ_SIZE + 1])
+void handle_client(client &client, char read_buffer[READ_SIZE + 1])
 {
 	for (int i = 0; i < READ_SIZE; ++i) {
-		std::cout << (int) read_buffer[i];
-	}
-	std::cout << std::endl;
+		switch (read_buffer[i])
+		{
+		case '\n':
+			client.command[client.comlen++] = '\0';
+			parse_command(client);
+			break;
+		default:
+			if (client.comlen >= MAX_COMMAND_LENGTH) {
+
+			client.command[client.comlen
 }
 
 int poll_fdset(struct epoll_entry &master, struct epoll_entry &epoll,
@@ -93,7 +91,10 @@ int poll_fdset(struct epoll_entry &master, struct epoll_entry &epoll,
 		} else if (events[i].data.fd == master.fd) {
 			handle_master(master, epoll, clients, nclients);
 		} else {
-			handle_client(events[i].data.fd, read_buffer);
+			int i = 0;
+			while (clients[i].entry.fd != events[i].data.fd
+					&& i++ < MAX_CLIENTS);
+			handle_client(clients[i - 1], read_buffer);
 		}
 	}
 	std::cout << "Input handled" << std::endl;

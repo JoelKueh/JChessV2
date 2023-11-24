@@ -2,6 +2,7 @@
 #define CB_2_0_MOVE
 
 #include <cstdint>
+#include <string>
 
 #include "Utils.h"
 
@@ -59,7 +60,6 @@ public:
 		QUEEN_PROMO_CAPTURE = 15 
 	};
 	static const uint16_t INVALID = 0b0110111111111111;
-
 
 protected:
 	uint16_t data;
