@@ -4,14 +4,6 @@
 #include "../common/CB_2_0/BoardRep.h"
 #include "server_utils.h"
 
-#define PORT 24388
-#define MAX_CLIENTS 30
-#define MAX_GAMES 15
-
-#define MAX_EVENTS 5
-#define READ_SIZE 10
-#define MAX_COMMAND_LENGTH 50
-
 void parse_command(client &client) {
 
 }
@@ -21,11 +13,11 @@ void handle_master(struct epoll_entry &master, struct epoll_entry &epoll,
 {
 	std::cout << "Client attempted connection" << std::endl;
 
-	struct sockaddr_in *addr = (sockaddr_in *)malloc(sizeof(sockaddr_in));
-	int addrlen = sizeof(&addr);
-	addr->sin_family = AF_INET;
-	addr->sin_addr.s_addr = INADDR_ANY;
-	addr->sin_port = htons(PORT);
+	struct sockaddr_in addr;
+	int addrlen = sizeof(addr);
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = INADDR_ANY;
+	addr.sin_port = htons(PORT);
 
 	int new_socket = accept(master.fd, (struct sockaddr *)&addr,
 			(socklen_t*)&addrlen);
@@ -33,12 +25,13 @@ void handle_master(struct epoll_entry &master, struct epoll_entry &epoll,
 	event->events = EPOLLIN;
 	event->data.fd = new_socket;
 
-	if (nclients < MAX_CLIENTS) {
-		clients[nclients++].entry.fd = event->data.fd;
-		clients[nclients++].entry.event = event;
+	if (nclients > MAX_CLIENTS) {
+		perror("client accept");
 	}
 
-	perror("client accept");
+	clients[nclients++].entry.fd = event->data.fd;
+	clients[nclients++].entry.event = event;
+
 	std::cout << "Client File Descriptor: " << new_socket << std::endl;
 	if (epoll_ctl(epoll.fd, EPOLL_CTL_ADD, new_socket, event)) {
 		perror("client epoll_ctl");
@@ -57,8 +50,13 @@ void handle_client(client &client, char read_buffer[READ_SIZE + 1])
 			break;
 		default:
 			if (client.comlen >= MAX_COMMAND_LENGTH) {
-
-			client.command[client.comlen
+				client.comlen = 0;
+				break;
+			}
+			client.command[client.comlen++] = read_buffer[i];
+			break;
+		}
+	}
 }
 
 int poll_fdset(struct epoll_entry &master, struct epoll_entry &epoll,

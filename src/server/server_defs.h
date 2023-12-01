@@ -36,7 +36,7 @@ enum command_type {
 
 struct epoll_entry {
 	int fd;
-	struct epoll_event event;
+	struct epoll_event *event;
 };
 
 // Board should be deleted and game_id should be freed when game is destroyed.
@@ -65,7 +65,7 @@ struct client {
 
 struct server {
 	int epoll_fd;
-	epoll_entry stdin;
+	epoll_entry sin;
 	epoll_entry master;
 	struct client clients[MAX_CLIENTS];
 	struct game *games[MAX_GAMES];

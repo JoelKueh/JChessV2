@@ -43,19 +43,19 @@ void init_server(struct server *srv)
 	}
 
 	// Adding stdin to the epoll_fd
-	srv->stdin.event.events = EPOLLIN;
-	srv->stdin.event.data.fd = srv->stdin.fd;
-	if (epoll_ctl(srv->epoll_fd, EPOLL_CTL_ADD, srv->stdin.fd,
-				&srv->stdin.event)) {
+	srv->sin.event->events = EPOLLIN;
+	srv->sin.event->data.fd = srv->sin.fd;
+	if (epoll_ctl(srv->epoll_fd, EPOLL_CTL_ADD, srv->sin.fd,
+				srv->sin.event)) {
 		perror("epoll_ctl");
 		exit(EXIT_FAILURE);
 	}
 
 	// Adding the master socket to the epoll_fd
-	srv->master.event.events = EPOLLIN;
-	srv->master.event.data.fd = srv->master.fd;
+	srv->master.event->events = EPOLLIN;
+	srv->master.event->data.fd = srv->master.fd;
 	if (epoll_ctl(srv->epoll_fd, EPOLL_CTL_ADD, srv->master.fd,
-				&srv->master.event)) {
+				srv->master.event)) {
 		perror("epoll_ctl");
 		exit(EXIT_FAILURE);
 	}

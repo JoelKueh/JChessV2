@@ -10,10 +10,8 @@
 
 int main(int argc, char *argv[]) {
 	struct server srv;
-	char command[] = "abcde|defg|abcesdfpoi|apowie";
-	char **words;
-	int num_words = split_command(command, &words);
-	for (int i = 0; i < num_words; ++i) {
-		puts(words[i]);
-	}
+	init_server(&srv);
+
+	while (poll_set(&srv));
+	printf("Exiting...\n");
 }
