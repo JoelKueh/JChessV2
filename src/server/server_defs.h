@@ -36,10 +36,10 @@ enum command_type {
 
 struct epoll_entry {
 	int fd;
-	struct epoll_event *event;
+	struct epoll_event event;
 };
 
-// Board should be deleted and game_id should be freed when game is destroyed.
+// Board should be deleted when game is destroyed.
 struct game
 {
 	CB::BoardRep *board;
@@ -55,10 +55,10 @@ struct game
 };
 
 struct client {
-	struct epoll_entry entry;
+	struct epoll_event event;
 	struct game *game;
 	char command[MAX_COMMAND_LENGTH + 1];
-	int comlen;
+	int comlen = 0;
 	bool is_white;
 	bool awaiting_move;
 };
@@ -68,6 +68,7 @@ struct server {
 	epoll_entry sin;
 	epoll_entry master;
 	struct client clients[MAX_CLIENTS];
+	int num_clients = 0;
 	struct game *games[MAX_GAMES];
 	int num_games = 0;
 };

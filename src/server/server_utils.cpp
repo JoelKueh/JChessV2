@@ -1,3 +1,5 @@
+#define DEBUG_VERBOSE
+
 // Debug
 #include <iostream>
 
@@ -43,28 +45,60 @@ void init_server(struct server *srv)
 	}
 
 	// Adding stdin to the epoll_fd
-	srv->sin.event->events = EPOLLIN;
-	srv->sin.event->data.fd = srv->sin.fd;
+	srv->sin.event.events = EPOLLIN;
+	srv->sin.event.data.fd = srv->sin.fd;
 	if (epoll_ctl(srv->epoll_fd, EPOLL_CTL_ADD, srv->sin.fd,
-				srv->sin.event)) {
+				&srv->sin.event)) {
 		perror("epoll_ctl");
 		exit(EXIT_FAILURE);
 	}
 
 	// Adding the master socket to the epoll_fd
-	srv->master.event->events = EPOLLIN;
-	srv->master.event->data.fd = srv->master.fd;
+	srv->master.event.events = EPOLLIN;
+	srv->master.event.data.fd = srv->master.fd;
 	if (epoll_ctl(srv->epoll_fd, EPOLL_CTL_ADD, srv->master.fd,
-				srv->master.event)) {
+				&srv->master.event)) {
 		perror("epoll_ctl");
 		exit(EXIT_FAILURE);
 	}
 }
 
+int handle_event(struct server *srv, struct epoll_event *evt)
+{
+	if (evt->data.fd == srv->master.fd) {
+		handle_master(srv);
+		return 1;
+	}
+
+	int bytes;
+	char read_buffer[READ_SIZE + 1];
+	bytes = read(evt->data.fd, read_buffer, READ_SIZE);
+	if (bytes == -1) {
+		perror("read");
+		return 0;
+	}
+	read_buffer[bytes] = '\0';
+
+#ifdef DEBUG_VERBOSE
+	printf("%d bytes from client with fd %d:", bytes, evt->data.fd);
+	printf(" %s\n", read_buffer); 
+#endif
+
+	if (evt->data.fd == 0) {
+		if (strcmp(read_buffer, "stop\n") == 0)
+			return 0;
+	} else {
+		int j = 0;
+		while (srv->clients[j].event.data.fd != evt->data.fd
+				&& j++ < MAX_CLIENTS);
+		handle_client(srv, &srv->clients[j], read_buffer);
+	}
+	return 1;
+}
+
 int poll_set(struct server *srv)
 {
-	int event_count, bytes;
-	char read_buffer[READ_SIZE + 1];
+	int event_count;
 	struct epoll_event events[MAX_EVENTS];
 
 	// Polling for input...
@@ -76,27 +110,45 @@ int poll_set(struct server *srv)
 
 	// Cycling through ready events
 	for (int i = 0; i < event_count; ++i) {
-		bytes = read(events[i].data.fd, read_buffer, READ_SIZE);
-		read_buffer[bytes] = '\0';
-		
-		if (events[i].data.fd == 0) {
-			if (strcmp(read_buffer, "stop\n"))
-				return 0;
-		} else if (events[i].data.fd == srv->master.fd) {
-			handle_master(srv);
-		} else {
-			int i = 0;
-			while (srv->clients[i].entry.fd != events[i].data.fd
-					&& i++ < MAX_CLIENTS);
-			handle_client(&srv->clients[i - 1], read_buffer);
-		}
+		if (handle_event(srv, &events[i]) == 0)
+			return 0;
 	}
 	return 1;
 }
 
 void handle_master(struct server *srv)
 {
+#ifdef DEBUG_VERBOSE
+	printf("Client attempted connection\n");
+#endif
 
+	struct sockaddr_in addr;
+	int addrlen = sizeof(addr);
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = INADDR_ANY;
+	addr.sin_port = htons(PORT);
+
+	int new_socket = accept(srv->master.fd, (struct sockaddr *)&addr,
+			(socklen_t*)&addrlen);
+
+	if (srv->num_clients > MAX_CLIENTS) {
+		perror("client accept");
+	}
+
+	struct client *cli = &srv->clients[srv->num_clients++];
+	cli->event.data.fd = new_socket;
+	cli->event.events = EPOLLIN;
+	cli->game = nullptr;
+
+#ifdef DEBUG_VERBOSE
+	printf("Client File Descriptor: %d\n", new_socket);
+#endif
+
+	if (epoll_ctl(srv->epoll_fd, EPOLL_CTL_ADD, new_socket,
+				&cli->event)) {
+		perror("client epoll_ctl");
+		exit(EXIT_FAILURE);
+	}
 }
 
 void handle_client(struct server *srv, struct client *client, char rb[])
@@ -109,12 +161,11 @@ void handle_client(struct server *srv, struct client *client, char rb[])
 		if (ch == '\n') {
 			client->command[client->comlen++] = '\0';
 			parse_command(srv, client);
-			client->comlen = 0;
 		} else if (ch == '\0') {
-			send(client, invalid_msg);
+			send_client(client, invalid_msg);
 		} else {
-			if (client->comlen++ == MAX_COMMAND_LENGTH) {
-				send(client, invalid_msg);
+			if (client->comlen == MAX_COMMAND_LENGTH) {
+				send_client(client, invalid_msg);
 				client->comlen = 0;
 			}
 			client->command[client->comlen++] = ch;
@@ -129,6 +180,16 @@ void parse_command(struct server *srv, struct client *client)
 	char **words;
 	int num_words, i;
 	num_words = split_command(client->command, &words);
+
+#ifdef DEBUG_VERBOSE
+	printf("Client File Descriptor: %d\n", client->event.data.fd);
+	printf("Command: ");
+	for (int i = 0; i < num_words; ++i) {
+		printf("%s ", words[i]);
+	}
+	printf("\n");
+#endif
+
 	enum command_type type = parse_head(words[0]);
 	
 	switch (type)
@@ -145,8 +206,10 @@ void parse_command(struct server *srv, struct client *client)
 	case command_type::UPDATE:
 		break;
 	default:
-		send(client, invalid_msg);
+		send_client(client, invalid_msg);
 	}
+	client->comlen = 0;
+	free(words);
 }
 
 enum command_type parse_head(char *head)
@@ -174,9 +237,21 @@ void parse_move(struct server *srv, struct client *client,
 {
 	const char invalid_msg[] = "invalid_command";
 	const char invalid_move[] = "invalid_move";
+	const char invalid_game[] = "invalid_no_game";
+	const char invalid_go[] = "invalid_no_go";
+
+	if (client->game == nullptr) {
+		send_client(client, invalid_game);
+		return;
+	}
 
 	if (num_words != 2) {
-		send(client, invalid_msg);
+		send_client(client, invalid_msg);
+		return;
+	}
+
+	if (client->game->board->is_white_turn() != client->is_white) {
+		send_client(client, invalid_go);
 		return;
 	}
 
@@ -184,11 +259,19 @@ void parse_move(struct server *srv, struct client *client,
 	CB::Move move = algbr_to_move(*client->game->board, algbr);
 
 	if (move.is_invalid()) {
-		send(client, invalid_move);
+		send_client(client, invalid_move);
 		return;
 	}
 
 	client->game->board->make(move);
+
+#ifdef DEBUG_VERBOSE
+	printf("\n");
+	printf("GameID: %s\n", client->game->game_id);
+	printf("- Time: %lu\n", client->game->times[0]);
+	printf("- Incr: %lu\n", client->game->incr);
+	print_board(*client->game->board);
+#endif
 }
 
 void parse_join(struct server *srv, struct client *client,
@@ -201,7 +284,7 @@ void parse_join(struct server *srv, struct client *client,
 
 	// Prevent out of bounds access on words.
 	if (num_words != 2) {
-		send(client, invalid_msg);
+		send_client(client, invalid_msg);
 	}
 	
 	char *game_id = words[1];
@@ -215,7 +298,7 @@ void parse_join(struct server *srv, struct client *client,
 				this_game->clients[1] = client;
 				client->is_white = true;
 			} else {
-				send(client, game_full);
+				send_client(client, game_full);
 				return;
 			}
 			client->game = this_game;
@@ -233,7 +316,7 @@ void parse_create_room(struct server *srv, struct client *client,
 
 	// Prevent out of bounds access on words.
 	if (num_words != 5) {
-		send(client, invalid_msg);
+		send_client(client, invalid_msg);
 		return;
 	}
 
@@ -247,7 +330,7 @@ void parse_create_room(struct server *srv, struct client *client,
 	// positions in client->command
 	int game_id_len = color - game_id - 1;
 	if (game_id_len != 4) {
-		send(client, invalid_game_id);
+		send_client(client, invalid_game_id);
 		return;
 	}
 
@@ -260,11 +343,19 @@ void parse_create_room(struct server *srv, struct client *client,
 	new_game->times[1] = new_game->times[0];
 	new_game->is_timed = (new_game->times[0] != 0);
 	new_game->incr = strtol(incr, nullptr, 10) * 1000;
-	new_game->board = new CB::BoardRep;
+	new_game->board = new CB::BoardRep; // BOARD IS HEAP ALLOCATED
 
 	srv->games[srv->num_games++] = new_game;
 	client->game = new_game;
 	client->awaiting_move = false;
+
+#ifdef DEBUG_VERBOSE
+	printf("\n");
+	printf("GameID: %s\n", client->game->game_id);
+	printf("- Time: %lu\n", client->game->times[0]);
+	printf("- Incr: %lu\n", client->game->incr);
+	print_board(*client->game->board);
+#endif
 }
 
 int split_command(char command[], char ***words)
@@ -292,10 +383,11 @@ int split_command(char command[], char ***words)
 	return num_words;
 }
 
-void send(struct client *client, const char msg[])
+void send_client(struct client *client, const char msg[])
 {
-	// Debug: Write directly to console
+#ifdef DEBUG_VERBOSE
 	std::cout << msg << std::endl;
+#endif
 }
 
 void cleanup(struct server *srv)

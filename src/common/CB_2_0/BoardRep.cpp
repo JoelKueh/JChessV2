@@ -16,6 +16,27 @@ CB::BoardRep::BoardRep(char fen[])
 	write_fen(fen);
 }
 
+enum CB::BoardRep::bstate CB::BoardRep::get_board_state()
+{
+	MoveList list;
+	gen_move_list(&list); // Will update tables if needed
+	return get_board_state(list);
+}
+
+enum CB::BoardRep::bstate CB::BoardRep::get_board_state(MoveList &list)
+{
+	if (list.size() != 0) {
+		return bstate::NORMAL;
+	}
+
+	if (bb.piece[white_turn][KING] & threats) {
+		// WIN_WHITE is one greater than WIN_BLACK
+		return (bstate)(bstate::WIN_WHITE - white_turn);
+	}
+
+	return bstate::STALEMATE;
+}
+
 void CB::BoardRep::wipe_board()
 {
 	move_history.clear();
@@ -38,6 +59,7 @@ void CB::BoardRep::wipe_board()
 
 void CB::BoardRep::write_fen(const char *const fen_str)
 {
+	root_fen = fen_str;
 	wipe_board();
 	int sq = 0;
 	const char *fen = fen_str;
@@ -81,6 +103,41 @@ void CB::BoardRep::write_fen(const char *const fen_str)
 	}
 
 	tables_valid = false;
+}
+
+CB::Move CB::BoardRep::algbr_to_move(std::string &algebraic)
+{
+	for (int i = 0; i < algebraic.size(); ++i) {
+		algebraic.at(i) = tolower(algebraic.at(i));
+	}
+
+	int to = (algebraic.at(2) - 'a') + (7 - (algebraic.at(3) - '1')) * 8;
+	int from = (algebraic.at(0) - 'a') + (7 - (algebraic.at(1) - '1')) * 8;
+
+	if (algebraic.size() == 4)
+		return format_mv(to, from, CB::EMPTY);
+
+	CB::pid promo_pid;
+	switch (algebraic.at(4)) {
+		case 'n': promo_pid = CB::KNIGHT; break;
+		case 'b': promo_pid = CB::BISHOP; break;
+		case 'r': promo_pid = CB::ROOK; break;
+		case 'q': promo_pid = CB::QUEEN; break;
+		default: return CB::Move(CB::Move::INVALID);
+	}
+	return format_mv(to, from, promo_pid);
+}
+
+std::vector<std::string> CB::BoardRep::fen_from_root()
+{
+	std::vector<std::string> fen;
+	fen.push_back(root_fen);
+	
+	for (int i = 0; i < move_history.size(); ++i) {
+		fen.push_back(move_history[i].to_long_algbr());
+	}
+
+	return fen;
 }
 
 void CB::BoardRep::parse_fen_main(const char to_parse, int &sq)

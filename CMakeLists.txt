@@ -32,7 +32,8 @@ add_library(chessboard src/common/chessboard/BoardRep.cpp
 # Build CB_2_0 library
 add_library(cb_2_0 src/common/CB_2_0/BoardRep.cpp
 	src/common/CB_2_0/tables/magics.cpp
-	src/common/CB_2_0/tables/move_tables.cpp)
+	src/common/CB_2_0/tables/move_tables.cpp
+	src/common/CB_2_0/Move.cpp)
 
 # Force CMake to output compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
@@ -90,8 +91,14 @@ add_executable(client src/client/JChessV2.cpp include/glad.c
 target_link_libraries(client cb_2_0 ${NCURSES_LIBRARIES} glfw assimp)
 
 # Build server executable
-add_executable(server src/server/server.cpp src/server/server_utils.cpp)
+add_executable(server src/server/server.cpp src/server/server_utils.cpp
+	src/server/game_utils.cpp)
 target_link_libraries(server cb_2_0)
+
+# Build server executable
+add_executable(jcsrv src/cppsrv/jcsrv.cpp src/cppsrv/utils/net_utils.cpp
+	src/cppsrv/utils/server.cpp)
+target_link_libraries(jcsrv cb_2_0)
 
 # Build test client executable
 add_executable(test_client src/server/test_client.cpp)

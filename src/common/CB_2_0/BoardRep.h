@@ -85,12 +85,24 @@ public:
 	BoardRep();
 	BoardRep(char fen[]);
 
-	unsigned int get_board_state() const;
+	enum bstate {
+		NORMAL,
+		CHECK,
+		STALEMATE,
+		WIN_BLACK,
+		WIN_WHITE
+	};
+	enum bstate get_board_state();
+	enum bstate get_board_state(MoveList &list);
 
 	void wipe_board();
 	// Writes the given fen string to the board.
 	// Improper format can cause undefined behavior.
 	void write_fen(const char *const fen_str);
+	CB::Move algbr_to_move(std::string &algbr);
+	// Returns a vector of strings containing the root fen and all moves
+	// played on it to reach the current position.
+	std::vector<std::string> fen_from_root();
 	// Writes board info into an 8x8 character array.
 	void board_to_str(char board_str[8][8]) const;
 
@@ -112,6 +124,8 @@ public:
 	~BoardRep() = default;
 
 protected:
+	std::string root_fen;
+
 	std::vector<Move> move_history;
 	std::vector<board_state_extra> state_history;
 	int full_move_number = 0;

@@ -14,19 +14,10 @@ class Move
 public:
 	Move() = default;
 
-	Move(unsigned int from, unsigned int to, unsigned int flags) {
-		data = ((flags & 0xf) << 12)
-		     | ((from & 0x3f) << 6)
-		     | (to & 0x3f);
-	}
+	Move(unsigned int from, unsigned int to, unsigned int flags);
+	Move(uint16_t data);
 
-	Move(uint16_t data) {
-		this->data = data;
-	}
-
-	void operator=(const Move &rhs) {
-		this->data = rhs.data;
-	}
+	void operator=(const Move &rhs);
 
 	unsigned int get_to() const { return data & TO; } 
 	unsigned int get_from() const { return (data & FROM) >> 6; }
@@ -60,6 +51,8 @@ public:
 		QUEEN_PROMO_CAPTURE = 15 
 	};
 	static const uint16_t INVALID = 0b0110111111111111;
+
+	std::string to_long_algbr();
 
 protected:
 	uint16_t data;

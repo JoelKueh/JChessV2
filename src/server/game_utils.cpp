@@ -1,4 +1,5 @@
 
+#include <iostream>
 #include "game_utils.h"
 
 CB::Move algbr_to_move(CB::BoardRep &board, std::string &algebraic)
@@ -22,4 +23,20 @@ CB::Move algbr_to_move(CB::BoardRep &board, std::string &algebraic)
 		default: return CB::Move(CB::Move::INVALID);
 	}
 	return board.format_mv(to, from, promo_pid);
+}
+
+void print_board(const CB::BoardRep &board)
+{
+	const char np_line[] = "+---+---+---+---+---+---+---+---+";
+	char board_str[8][8];
+	board.board_to_str(board_str);
+
+	for (int row = 0; row < 8; ++row) {
+		std::cout << np_line << std::endl << "| ";
+		for (int col = 0; col < 8; ++col) {
+			std::cout << board_str[row][col] << " | ";
+		}
+		std::cout << std::endl;
+	}
+	std::cout << np_line << std::endl;
 }
