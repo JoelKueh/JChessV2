@@ -74,7 +74,7 @@ create_room
 Server sends an initial fen message that holds the root of the game.
 The server then sends batches of no more than 10 moves at a time.
 
-Fen-Format: fen|<FEN_STRING>
+Fen-Format: state|<color_to_move>|<chk/stmt/chkmt/nrml>|time[0]|time[1]|<FEN_STRING>
 Moves-Format: <MOVE_1>
             <MOVE_2>
             <MOVE_3>

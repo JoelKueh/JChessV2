@@ -508,7 +508,35 @@ void server::parse_join(struct client *cli, char **words, int num_words)
 
 void server::send_state(struct client *cli)
 {
-	std::string msg = "fen|";
+	std::string msg = "state|";
+	msg.append(cli->game->board->is_white_turn() ?
+			"white|" : "black|");
+
+	switch (cli->game->board->get_board_state()) {
+	case CB::BoardRep::bstate::NORMAL:
+		msg.append("normal|");
+		break;
+	case CB::BoardRep::bstate::CHECK:
+		msg.append("check|");
+		break;
+	case CB::BoardRep::bstate::STALEMATE:
+		msg.append("stalemate|");
+		break;
+	case CB::BoardRep::bstate::WIN_BLACK:
+		msg.append("win_black|");
+		break;
+	case CB::BoardRep::bstate::WIN_WHITE:
+		msg.append("win_white|");
+		break;
+	default:
+		break;
+	}
+
+	msg.append(std::to_string(cli->game->times[0] / 1000));
+	msg.push_back('|');
+	msg.append(std::to_string(cli->game->times[1] / 1000));
+	msg.push_back('|');
+
 	std::vector<std::string> fen = cli->game->board->fen_from_root();
 	msg.append(fen[0]);
 	msg.push_back('\n');
@@ -590,7 +618,19 @@ void server::send_client(struct client *cli, const char msg[], int len)
 			return;
 		}
 
-		// TODO: Handle Forfeit
+		// Forfeit if we got an econnreset 
+		// TODO: CHECK WHAT HAPPENS IF BOTH CLIENTS DISCONNECT
+		// SIMULTANEOUSLY
+		bool is_white = cli->is_white;
+		if (cli->game != nullptr
+				&& cli->game->clients[!is_white] != nullptr) {
+			std::string msg = "resign|";
+			msg.append(is_white ? "white" : "black");
+			msg.push_back('\n');
+			send_client(cli->game->clients[!is_white],
+					msg.c_str(), msg.size());
+			close_game(cli->game);
+		}
 		close_client(cli);
 	}
 }
